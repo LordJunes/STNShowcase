@@ -18,6 +18,7 @@
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="teamTab">👥 Team Setup</button>
       <button class="tab-btn" data-tab="inventoryTab">🎒 Inventory</button>
+      <button class="tab-btn" data-tab="requirementsTab">⚔️ Requirements</button>
       <button class="tab-btn" data-tab="ignTab">🎮 Ingame Name</button>
       <button class="tab-btn" data-tab="settingsTab">⚙️ Settings</button>
     </nav>
@@ -48,16 +49,21 @@
         <div class="footer-btn-row">
           <button id="teamRoleTagBtn" class="status-toggle-btn active">🏷️ Role Tags: ON</button>
           <button class="btn" id="teamCopyBtn">📋 Copy Team Setup for Discord</button>
-          <button class="btn btn-secondary" id="teamDownloadImgBtn" style="display:none;">💾 Download Setup Image</button>
+        </div>
+        <div class="footer-btn-row" style="margin-top: 8px;">
+          <button class="btn btn-secondary" id="teamCopyImgBtn">📷 Copy Setup Image for Discord</button>
+          <button class="btn btn-secondary" id="teamDownloadImgBtn">💾 Download Setup Image for Discord</button>
         </div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Discord Preview</h2>
+      <h2>Discord Text Preview</h2>
       <div class="preview-headline" id="teamPreviewHeadline">Looking for a team to farm Impossible</div>
       <pre class="preview-box" id="teamPreview"></pre>
-      <div id="teamImagePreviewBox" class="preview-image-card" style="display:none;"></div>
+      
+      <h2 style="margin-top: 25px;">Discord Image Preview</h2>
+      <div id="teamImagePreviewBox" class="preview-image-card"></div>
       <div id="teamCaptureContainer" style="position: absolute; left: -9999px; top: -9999px;"></div>
     </section>
   </main>
@@ -99,6 +105,52 @@
     </section>
   </main>
 
+  <main id="requirementsTab" class="tab-content">
+    <section class="card">
+      <div class="header-row">
+        <div class="header-inputs-col">
+          <div class="highlight-field-wrap">
+            <label for="reqHeadline">✏️ Discord Headline / Title</label>
+            <input type="text" id="reqHeadline" value="We need one more Person for Clan fight/Clan Join Requirements">
+          </div>
+          <div class="sub-header-row">
+            <div class="highlight-field-wrap">
+              <label for="reqBanner">✏️ Section Subtitle / Banner</label>
+              <input type="text" id="reqBanner" value="Required Units to Join our Team/Clan to Farm/Join">
+            </div>
+            <div class="highlight-field-wrap">
+              <label for="reqClanName">✏️ Clan Name (Optional)</label>
+              <input type="text" id="reqClanName" placeholder="Leave empty for generic team recruitment...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="inventory-tools">
+        <button id="btnReqSelectAll">Select All</button>
+        <button id="btnReqDeselectAll">Deselect All</button>
+        <button id="btnReqMaxAll">Set All to Max Level</button>
+        <button id="reqRoleTagBtnTop" class="status-toggle-btn active" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">🏷️ Role Tags: ON</button>
+      </div>
+
+      <div id="requirementsContainer"></div>
+
+      <div class="card-footer" style="margin-top: 20px;">
+        <div id="reqCharBadge"></div>
+        <div class="footer-btn-row">
+          <button id="reqNitroBtn" class="status-toggle-btn inactive" type="button">🚀 Discord Nitro: OFF (2000)</button>
+          <button id="reqRoleTagBtnBottom" class="status-toggle-btn active">🏷️ Role Tags: ON</button>
+        </div>
+        <div id="reqActionButtons"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Discord Preview</h2>
+      <div id="reqPreviewContainer"></div>
+    </section>
+  </main>
+
   <main id="ignTab" class="tab-content">
     <section class="card">
       <h2>Ingame Name Settings</h2>
@@ -115,14 +167,6 @@
   </main>
 
   <main id="settingsTab" class="tab-content">
-    <section class="card">
-      <h2>Team Setup Output Mode</h2>
-      <p class="section-desc">Choose whether your team setup is exported and copied as ANSI Discord text or as a high quality generated PNG image.</p>
-      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <button id="btnToggleOutputMode" class="status-toggle-btn active">Output Mode: Text (ANSI)</button>
-      </div>
-    </section>
-
     <section class="card">
       <h2>Backup & Data Transfer</h2>
       <p class="section-desc">Export all your settings, inventory, and levels into a JSON backup file or restore a previous one.</p>
@@ -141,7 +185,7 @@
 
       <div class="settings-grid">
         <div class="settings-group">
-          <h3>Banner & Ingame Name Colors</h3>
+          <h3>Banner, Clan & Ingame Name Colors</h3>
           <div class="settings-row">
             <label id="lbl_BANNER">=== BANNER / SUBTITLE ===</label>
             <select id="ansi_BANNER" class="setting-select" data-key="BANNER"></select>
@@ -149,6 +193,10 @@
           <div class="settings-row">
             <label id="lbl_IGN">Ingame Name Line</label>
             <select id="ansi_IGN" class="setting-select" data-key="IGN"></select>
+          </div>
+          <div class="settings-row">
+            <label id="lbl_CLAN">Clan Line</label>
+            <select id="ansi_CLAN" class="setting-select" data-key="CLAN"></select>
           </div>
 
           <h3 style="margin-top: 24px;">Role Tag Colors</h3>
@@ -250,8 +298,12 @@
 <script src="js/data.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/ansi.js"></script>
+<script src="js/canvas.js"></script>
 <script src="js/dropdown.js"></script>
 <script src="js/scanner.js"></script>
+<script src="js/team.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/requirements.js"></script>
 <script src="js/app.js"></script>
 
 </body>

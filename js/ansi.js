@@ -106,16 +106,30 @@ function buildTeamMessage(headline, banner, ign, slots, count, colors, isHtml = 
   return lines.join("\n");
 }
 
-function chunkInventoryMessages(headline, invData, colors, includeRoleTag = true, maxChars = 2000) {
-  const threshold = maxChars - 150;
+function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, colors, includeRoleTag = true, maxChars = 2000) {
+  const threshold = maxChars - 180;
   const owned = ITEMS.filter(it => invData[it.name] && invData[it.name].owned);
   const bannerAnsi = colors.BANNER || "36";
   const bannerHex = getAnsiHex(bannerAnsi);
+  const clanAnsi = colors.CLAN || "33";
+  const clanHex = getAnsiHex(clanAnsi);
+
+  const formatSub = (rawFormat) => {
+    if (!optionalSubLine || !optionalSubLine.trim()) return "";
+    const clean = optionalSubLine.trim();
+    if (rawFormat) {
+      return `${ESC}[1;${clanAnsi}mClan: ${clean}${ESC}[0m\n`;
+    }
+    return `<span style="color:${clanHex}; font-weight:bold;">Clan: ${clean}</span>\n`;
+  };
 
   if (owned.length === 0) {
+    const subRaw = formatSub(true);
+    const subHtml = formatSub(false);
     return [{
-      raw: `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m=== INVENTORY ===${ESC}[0m\n\n(No items selected)\n\`\`\``,
-      html: `<strong>${headline}</strong>\n\n<span style="color:${bannerHex}; font-weight:bold;">=== INVENTORY ===</span>\n\n<em>(No items selected)</em>`,
+      raw: `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m\n${subRaw}\n(No units selected)\n\`\`\``,
+      headlineHtml: headline,
+      html: `<span style="color:${bannerHex}; font-weight:bold;">${bannerText}</span>\n${subHtml}\n<span style="color:#72767d; font-style:italic;">(No units selected)</span>`,
       charCount: 120,
       partNum: 1,
       totalParts: 1
@@ -135,7 +149,8 @@ function chunkInventoryMessages(headline, invData, colors, includeRoleTag = true
   let curHtml = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const testCandidate = `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m=== INVENTORY ===${ESC}[0m\n\n` + [...curRaw, lines[i].raw].join('\n') + `\n\`\`\``;
+    const subRaw = formatSub(true);
+    const testCandidate = `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m\n${subRaw}\n` + [...curRaw, lines[i].raw].join('\n') + `\n\`\`\``;
     if (testCandidate.length > threshold && curRaw.length > 0) {
       chunks.push({ rawLines: curRaw, htmlLines: curHtml });
       curRaw = [lines[i].raw];
@@ -151,65 +166,12 @@ function chunkInventoryMessages(headline, invData, colors, includeRoleTag = true
   return chunks.map((chunk, idx) => {
     const partNum = idx + 1;
     const partLabel = totalParts > 1 ? ` (Part ${partNum}/${totalParts})` : '';
-    const raw = `**${headline}${partLabel}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m=== INVENTORY${partLabel} ===${ESC}[0m\n\n` + chunk.rawLines.join('\n') + `\n\`\`\``;
-    const html = `<strong>${headline}${partLabel}</strong>\n\n<span style="color:${bannerHex}; font-weight:bold;">=== INVENTORY${partLabel} ===</span>\n\n` + chunk.htmlLines.join('\n');
-    return { raw, html, partNum, totalParts, charCount: raw.length };
+    const subRaw = formatSub(true);
+    const subHtml = formatSub(false);
+
+    const raw = `**${headline}${partLabel}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${partLabel}${ESC}[0m\n${subRaw}\n` + chunk.rawLines.join('\n') + `\n\`\`\``;
+    const headlineHtml = `${headline}${partLabel}`;
+    const html = `<span style="color:${bannerHex}; font-weight:bold;">${bannerText}${partLabel}</span>\n${subHtml}\n` + chunk.htmlLines.join('\n');
+    return { raw, headlineHtml, html, partNum, totalParts, charCount: raw.length };
   });
-}
-
-function buildTeamImageDom(headline, banner, ign, slots, count, colors, includeRoleTag) {
-  let activeSlots = [];
-  for (let i = 0; i < count; i++) {
-    const slot = slots[i];
-    if (slot && slot.item) {
-      const def = ITEMS.find(x => x.name === slot.item);
-      if (def) activeSlots.push({ slot, def });
-    }
-  }
-
-  const bannerText = banner && banner.trim() ? banner.trim() : "=== MY SETUP ===";
-  const bannerColor = getAnsiHex(colors.BANNER || "36");
-  const ignColor = getAnsiHex(colors.IGN || "32");
-
-  let rowsHtml = '';
-  if (activeSlots.length === 0) {
-    rowsHtml = `<div style="color:#72767d; font-style:italic; padding:15px 0;">(No units selected)</div>`;
-  } else {
-    activeSlots.forEach(({ slot, def }) => {
-      const roleColor = getAnsiHex(colors[slot.role || def.role] || "37");
-      const itemColor = getAnsiHex(colors[def.rarity] || "37");
-      const roleHtml = includeRoleTag ? `<span style="color:${roleColor}; font-weight:bold; min-width:140px; display:inline-block;">[${slot.role || def.role}]</span>` : '';
-      const maxHtml = slot.lvl >= def.max ? `<span style="color:#72767d; font-weight:bold; margin-left:16px;">(MAX)</span>` : '';
-
-      rowsHtml += `
-        <div style="display:flex; align-items:center; gap:20px; margin-bottom:14px;">
-          <div style="width:75px; height:75px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <img src="${def.img}" alt="" style="width:100%; height:100%; object-fit:contain; display:block;">
-          </div>
-          <div style="display:flex; align-items:center; font-family:'Consolas', monospace; font-size:1.35rem; white-space:pre;">
-            ${roleHtml}
-            <span style="color:${itemColor}; font-weight:bold; min-width:230px; display:inline-block;">${def.name}</span>
-            <span style="color:#ffffff; font-weight:bold; margin-right:16px;">───</span>
-            <span style="color:#ffffff; font-weight:bold;">Lvl ${slot.lvl}/${def.max}</span>
-            ${maxHtml}
-          </div>
-        </div>
-      `;
-    });
-  }
-
-  const ignHtml = (ign && ign.trim()) ? `<div style="color:${ignColor}; font-weight:bold; font-size:1.35rem; font-family:'Consolas', monospace; margin-top:8px;">Ingame Name: ${escapeXml(ign.trim())}</div>` : '';
-
-  return `
-    <div id="teamCaptureCard" style="background:#151822; padding:32px; border-radius:12px; width:940px; box-sizing:border-box;">
-      <div style="font-size:1.55rem; font-weight:bold; color:#ffffff; margin-bottom:18px;">${escapeXml(headline)}</div>
-      <div style="background:#10121b; border:1px solid #262c3f; border-left:5px solid #5865f2; border-radius:10px; padding:24px;">
-        <div style="color:${bannerColor}; font-weight:bold; font-size:1.4rem; font-family:'Consolas', monospace;">${escapeXml(bannerText)}</div>
-        ${ignHtml}
-        <div style="margin-top:22px;">
-          ${rowsHtml}
-        </div>
-      </div>
-    </div>
-  `;
 }

@@ -384,13 +384,13 @@ const ScannerUI = {
     });
 
     StorageManager.saveInventory(userInventory);
-    renderInventory();
+    InventoryUI.render();
     this.close();
 
     const banner = document.getElementById("invCharBadge");
     if (banner) {
       banner.innerHTML = `<span class="char-badge char-ok">Successfully updated ${appliedCount} unit(s) from screenshot!</span>`;
-      setTimeout(() => updateInventoryUI(), 4000);
+      setTimeout(() => InventoryUI.updateUI(), 4000);
     }
   }
 };

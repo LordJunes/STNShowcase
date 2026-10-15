@@ -2,7 +2,7 @@ const StorageManager = {
   loadColors() {
     try {
       const data = localStorage.getItem('td_setup_colors');
-      return data ? JSON.parse(data) : { ...DEFAULT_COLORS };
+      return data ? { ...DEFAULT_COLORS, ...JSON.parse(data) } : { ...DEFAULT_COLORS };
     } catch { return { ...DEFAULT_COLORS }; }
   },
   saveColors(colors) {
@@ -47,13 +47,6 @@ const StorageManager = {
     localStorage.setItem('td_setup_ign', ign);
   },
 
-  loadOutputMode() {
-    return localStorage.getItem('td_setup_output_mode') || 'text';
-  },
-  saveOutputMode(mode) {
-    localStorage.setItem('td_setup_output_mode', mode);
-  },
-
   loadIncludeRoleTags() {
     const val = localStorage.getItem('td_include_role_tags');
     return val === null ? true : val === 'true';
@@ -84,33 +77,59 @@ const StorageManager = {
     localStorage.setItem('td_setup_inventory', JSON.stringify(inv));
   },
 
+  loadRequirements() {
+    let req = {};
+    ITEMS.forEach(it => { req[it.name] = { owned: false, lvl: 1, max: it.max }; });
+    try {
+      const data = localStorage.getItem('td_setup_requirements');
+      if (data) {
+        const parsed = JSON.parse(data);
+        Object.keys(parsed).forEach(k => {
+          if (req[k]) {
+            req[k].owned = !!parsed[k].owned;
+            req[k].lvl = Math.min(parsed[k].lvl || 1, req[k].max);
+          }
+        });
+        return req;
+      }
+    } catch {}
+    return req;
+  },
+  saveRequirements(req) {
+    localStorage.setItem('td_setup_requirements', JSON.stringify(req));
+  },
+
   loadHeadlines() {
     return {
       team: localStorage.getItem('td_headline_team') || "Looking for a team to farm Impossible",
       banner: localStorage.getItem('td_banner_team') || "=== MY SETUP ===",
-      inv: localStorage.getItem('td_headline_inv') || "Everything i have"
+      inv: localStorage.getItem('td_headline_inv') || "Everything i have",
+      reqHeadline: localStorage.getItem('td_req_headline') || "We need one more Person for Clan fight/Clan Join Requirements",
+      reqBanner: localStorage.getItem('td_req_banner') || "Required Units to Join our Team/Clan to Farm/Join",
+      reqClan: localStorage.getItem('td_req_clan') || ""
     };
   },
-  saveHeadlines(team, inv, banner) {
-    localStorage.setItem('td_headline_team', team);
-    localStorage.setItem('td_headline_inv', inv);
-    if (banner !== undefined) {
-      localStorage.setItem('td_banner_team', banner);
-    }
+  saveHeadlines(team, inv, banner, reqHeadline, reqBanner, reqClan) {
+    if (team !== undefined) localStorage.setItem('td_headline_team', team);
+    if (inv !== undefined) localStorage.setItem('td_headline_inv', inv);
+    if (banner !== undefined) localStorage.setItem('td_banner_team', banner);
+    if (reqHeadline !== undefined) localStorage.setItem('td_req_headline', reqHeadline);
+    if (reqBanner !== undefined) localStorage.setItem('td_req_banner', reqBanner);
+    if (reqClan !== undefined) localStorage.setItem('td_req_clan', reqClan);
   },
 
   exportAllData() {
     const backup = {
-      version: 2,
+      version: 3,
       timestamp: new Date().toISOString(),
       colors: this.loadColors(),
       slots: this.loadSlots(),
       vip: this.loadVip(),
       nitro: this.loadNitro(),
       ign: this.loadIgn(),
-      outputMode: this.loadOutputMode(),
       includeRoleTags: this.loadIncludeRoleTags(),
       inventory: this.loadInventory(),
+      requirements: this.loadRequirements(),
       headlines: this.loadHeadlines()
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -130,14 +149,17 @@ const StorageManager = {
       if (typeof data.vip === 'boolean') this.saveVip(data.vip);
       if (typeof data.nitro === 'boolean') this.saveNitro(data.nitro);
       if (typeof data.ign === 'string') this.saveIgn(data.ign);
-      if (typeof data.outputMode === 'string') this.saveOutputMode(data.outputMode);
       if (typeof data.includeRoleTags === 'boolean') this.saveIncludeRoleTags(data.includeRoleTags);
       if (data.inventory) this.saveInventory(data.inventory);
+      if (data.requirements) this.saveRequirements(data.requirements);
       if (data.headlines) {
         this.saveHeadlines(
-          data.headlines.team || "Looking for a team to farm Impossible",
-          data.headlines.inv || "Everything i have",
-          data.headlines.banner || "=== MY SETUP ==="
+          data.headlines.team,
+          data.headlines.inv,
+          data.headlines.banner,
+          data.headlines.reqHeadline,
+          data.headlines.reqBanner,
+          data.headlines.reqClan
         );
       }
       return true;
