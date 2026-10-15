@@ -10,6 +10,8 @@ const ANSI_OPTIONS = [
 ];
 
 const DEFAULT_COLORS = {
+  BANNER: "36",
+  IGN: "32",
   DAMAGE: "31",
   SUPPORT: "32",
   FARM: "33",

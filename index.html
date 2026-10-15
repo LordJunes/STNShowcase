@@ -6,6 +6,7 @@
   <title>Setup & Inventory Generator</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -17,17 +18,27 @@
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="teamTab">👥 Team Setup</button>
       <button class="tab-btn" data-tab="inventoryTab">🎒 Inventory</button>
-      <button class="tab-btn" data-tab="settingsTab">⚙️ Color Settings</button>
+      <button class="tab-btn" data-tab="ignTab">🎮 Ingame Name</button>
+      <button class="tab-btn" data-tab="settingsTab">⚙️ Settings</button>
     </nav>
   </header>
 
   <main id="teamTab" class="tab-content active">
     <section class="card">
       <div class="header-row">
-        <input type="text" id="teamHeadline" value="Looking for a team to farm Impossible" placeholder="Discord title / headline...">
-        <label class="vip-toggle">
-          <input type="checkbox" id="vipToggle"> ⭐ VIP (5 Slots)
-        </label>
+        <div class="header-inputs-col">
+          <div class="highlight-field-wrap">
+            <label for="teamHeadline">✏️ Discord Headline / Title</label>
+            <input type="text" id="teamHeadline" value="Looking for a team to farm Impossible" placeholder="Discord title / headline...">
+          </div>
+          <div class="sub-header-row">
+            <div class="highlight-field-wrap">
+              <label for="teamBanner">✏️ Section Subtitle / Banner</label>
+              <input type="text" id="teamBanner" value="=== MY SETUP ===" placeholder="Banner text...">
+            </div>
+            <button id="vipToggleBtn" class="status-toggle-btn inactive" type="button" style="height: 52px; margin-top: auto;">⭐ VIP: 4 Slots</button>
+          </div>
+        </div>
       </div>
 
       <div id="slotsContainer"></div>
@@ -35,36 +46,49 @@
       <div class="card-footer">
         <span id="teamCharCount" class="char-badge char-ok">Characters: 0 / 2,000</span>
         <div class="footer-btn-row">
-          <button id="teamRoleTagBtn" class="role-tag-toggle active">🏷️ Role Tags: ON</button>
+          <button id="teamRoleTagBtn" class="status-toggle-btn active">🏷️ Role Tags: ON</button>
           <button class="btn" id="teamCopyBtn">📋 Copy Team Setup for Discord</button>
+          <button class="btn btn-secondary" id="teamDownloadImgBtn" style="display:none;">💾 Download Setup Image</button>
         </div>
       </div>
     </section>
 
     <section class="card">
       <h2>Discord Preview</h2>
+      <div class="preview-headline" id="teamPreviewHeadline">Looking for a team to farm Impossible</div>
       <pre class="preview-box" id="teamPreview"></pre>
+      <div id="teamImagePreviewBox" class="preview-image-card" style="display:none;"></div>
+      <div id="teamCaptureContainer" style="position: absolute; left: -9999px; top: -9999px;"></div>
     </section>
   </main>
 
   <main id="inventoryTab" class="tab-content">
     <section class="card">
       <div class="header-row">
-        <input type="text" id="invHeadline" value="Everything i have" placeholder="Discord title...">
+        <div class="header-inputs-col">
+          <div class="highlight-field-wrap">
+            <label for="invHeadline">✏️ Discord Headline / Title</label>
+            <input type="text" id="invHeadline" value="Everything i have" placeholder="Discord title...">
+          </div>
+        </div>
       </div>
 
       <div class="inventory-tools">
         <button id="btnInvSelectAll">Select All</button>
         <button id="btnInvDeselectAll">Deselect All</button>
         <button id="btnInvMaxAll">Set All to Max Level</button>
-        <button id="btnOpenScanner" class="btn-scanner">📷 Scan Screenshot (OCR)</button>
-        <button id="invRoleTagBtnTop" class="role-tag-toggle active" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">🏷️ Role Tags: ON</button>
+        <button id="btnOpenScanner" class="btn-scanner">📷 Scan Screenshot (OCR) WIP</button>
+        <button id="invRoleTagBtnTop" class="status-toggle-btn active" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">🏷️ Role Tags: ON</button>
       </div>
 
       <div id="inventoryContainer"></div>
 
       <div class="card-footer" style="margin-top: 20px;">
         <div id="invCharBadge"></div>
+        <div class="footer-btn-row">
+          <button id="invNitroBtn" class="status-toggle-btn inactive" type="button">🚀 Discord Nitro: OFF (2000)</button>
+          <button id="invRoleTagBtnBottom" class="status-toggle-btn active">🏷️ Role Tags: ON</button>
+        </div>
         <div id="invActionButtons"></div>
       </div>
     </section>
@@ -75,16 +99,59 @@
     </section>
   </main>
 
+  <main id="ignTab" class="tab-content">
+    <section class="card">
+      <h2>Ingame Name Settings</h2>
+      <p class="section-desc">
+        Enter your ingame username. It will appear directly below your banner line in the team setup message.
+      </p>
+      <div style="max-width: 480px; margin-bottom: 20px;">
+        <input type="text" id="ignInput" placeholder="Your Ingame Name...">
+      </div>
+      <div style="font-size: 0.95rem; color: #94a3b8;">
+        Line preview: <code id="ignLinePreview" style="color: #57f287; font-weight: bold;">Ingame Name: (none)</code>
+      </div>
+    </section>
+  </main>
+
   <main id="settingsTab" class="tab-content">
+    <section class="card">
+      <h2>Team Setup Output Mode</h2>
+      <p class="section-desc">Choose whether your team setup is exported and copied as ANSI Discord text or as a high quality generated PNG image.</p>
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <button id="btnToggleOutputMode" class="status-toggle-btn active">Output Mode: Text (ANSI)</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Backup & Data Transfer</h2>
+      <p class="section-desc">Export all your settings, inventory, and levels into a JSON backup file or restore a previous one.</p>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn btn-secondary" id="btnExportData">📤 Export All Data (JSON)</button>
+        <button class="btn btn-secondary" id="btnImportData">📥 Import Data (JSON)</button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      </div>
+    </section>
+
     <section class="card">
       <h2>Customize Discord ANSI Colors</h2>
       <p class="section-desc">
-        Configure ANSI colors for tags and item rarities.
+        Configure ANSI colors for headers, labels, tags, and item rarities.
       </p>
 
       <div class="settings-grid">
         <div class="settings-group">
-          <h3>Role Tag Colors</h3>
+          <h3>Banner & Ingame Name Colors</h3>
+          <div class="settings-row">
+            <label id="lbl_BANNER">=== BANNER / SUBTITLE ===</label>
+            <select id="ansi_BANNER" class="setting-select" data-key="BANNER"></select>
+          </div>
+          <div class="settings-row">
+            <label id="lbl_IGN">Ingame Name Line</label>
+            <select id="ansi_IGN" class="setting-select" data-key="IGN"></select>
+          </div>
+
+          <h3 style="margin-top: 24px;">Role Tag Colors</h3>
           <div class="settings-row">
             <label id="lbl_DAMAGE">[DAMAGE]</label>
             <select id="ansi_DAMAGE" class="setting-select" data-key="DAMAGE"></select>

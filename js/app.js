@@ -3,15 +3,30 @@ let userSlots = StorageManager.loadSlots();
 let userInventory = StorageManager.loadInventory();
 let headlines = StorageManager.loadHeadlines();
 let isVip = StorageManager.loadVip();
+let isNitro = StorageManager.loadNitro();
+let userIgn = StorageManager.loadIgn();
+let outputMode = StorageManager.loadOutputMode();
 let includeRoleTags = StorageManager.loadIncludeRoleTags();
 
 const teamHeadlineInput = document.getElementById("teamHeadline");
+const teamBannerInput = document.getElementById("teamBanner");
 const invHeadlineInput = document.getElementById("invHeadline");
-const vipCheckbox = document.getElementById("vipToggle");
+const vipToggleBtn = document.getElementById("vipToggleBtn");
+const nitroBtn = document.getElementById("invNitroBtn");
+const ignInput = document.getElementById("ignInput");
+const ignLinePreview = document.getElementById("ignLinePreview");
+const btnToggleOutputMode = document.getElementById("btnToggleOutputMode");
+const teamDownloadImgBtn = document.getElementById("teamDownloadImgBtn");
 
 teamHeadlineInput.value = headlines.team;
+teamBannerInput.value = headlines.banner;
 invHeadlineInput.value = headlines.inv;
-vipCheckbox.checked = isVip;
+ignInput.value = userIgn;
+
+updateIgnPreview();
+updateVipButton();
+updateNitroButton();
+updateOutputModeButton();
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -29,13 +44,14 @@ function initSettings() {
   document.querySelectorAll(".setting-select").forEach(sel => {
     const key = sel.dataset.key;
     sel.innerHTML = ANSI_OPTIONS.map(opt => 
-      `<option value="${opt.code}" ${opt.code === userColors[key] ? 'selected' : ''}>${opt.name}</option>`
+      `<option value="${opt.code}" ${opt.code === (userColors[key] || DEFAULT_COLORS[key] || "37") ? 'selected' : ''}>${opt.name}</option>`
     ).join('');
 
     sel.addEventListener("change", () => {
       userColors[key] = sel.value;
       StorageManager.saveColors(userColors);
       updateSettingsLabels();
+      updateIgnPreview();
       updateTeamUI();
       updateInventoryUI();
     });
@@ -44,16 +60,93 @@ function initSettings() {
 }
 
 function updateSettingsLabels() {
-  Object.keys(userColors).forEach(k => {
+  Object.keys(DEFAULT_COLORS).forEach(k => {
     const lbl = document.getElementById(`lbl_${k}`);
-    if (lbl) lbl.style.color = getAnsiHex(userColors[k]);
+    if (lbl) lbl.style.color = getAnsiHex(userColors[k] || DEFAULT_COLORS[k]);
   });
 }
+
+function updateIgnPreview() {
+  const ignColor = getAnsiHex(userColors.IGN || "32");
+  ignLinePreview.style.color = ignColor;
+  ignLinePreview.textContent = userIgn && userIgn.trim() ? `Ingame Name: ${userIgn.trim()}` : `Ingame Name: (none)`;
+}
+
+function updateVipButton() {
+  vipToggleBtn.className = `status-toggle-btn ${isVip ? 'active' : 'inactive'}`;
+  vipToggleBtn.textContent = isVip ? "⭐ VIP: 5 Slots" : "⭐ VIP: 4 Slots";
+}
+
+function updateNitroButton() {
+  nitroBtn.className = `status-toggle-btn ${isNitro ? 'active' : 'inactive'}`;
+  nitroBtn.textContent = isNitro ? "🚀 Discord Nitro: ON (4000)" : "🚀 Discord Nitro: OFF (2000)";
+}
+
+function updateOutputModeButton() {
+  btnToggleOutputMode.className = `status-toggle-btn ${outputMode === 'image' ? 'active' : 'inactive'}`;
+  btnToggleOutputMode.textContent = outputMode === 'image' ? "Output Mode: Image (PNG)" : "Output Mode: Text (ANSI)";
+  teamDownloadImgBtn.style.display = outputMode === 'image' ? "flex" : "none";
+}
+
+vipToggleBtn.addEventListener("click", () => {
+  isVip = !isVip;
+  StorageManager.saveVip(isVip);
+  updateVipButton();
+  renderSlots();
+});
+
+nitroBtn.addEventListener("click", () => {
+  isNitro = !isNitro;
+  StorageManager.saveNitro(isNitro);
+  updateNitroButton();
+  updateTeamUI();
+  updateInventoryUI();
+});
+
+btnToggleOutputMode.addEventListener("click", () => {
+  outputMode = outputMode === 'text' ? 'image' : 'text';
+  StorageManager.saveOutputMode(outputMode);
+  updateOutputModeButton();
+  updateTeamUI();
+});
+
+ignInput.addEventListener("input", () => {
+  userIgn = ignInput.value;
+  StorageManager.saveIgn(userIgn);
+  updateIgnPreview();
+  updateTeamUI();
+});
+
+document.getElementById("btnExportData").addEventListener("click", () => {
+  StorageManager.exportAllData();
+});
+
+const importFileInput = document.getElementById("importFileInput");
+document.getElementById("btnImportData").addEventListener("click", () => {
+  importFileInput.click();
+});
+
+importFileInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const ok = StorageManager.importAllData(ev.target.result);
+    if (ok) {
+      alert("All data imported successfully!");
+      location.reload();
+    } else {
+      alert("Failed to parse JSON backup file.");
+    }
+  };
+  reader.readAsText(file);
+});
 
 document.getElementById("btnResetColors").addEventListener("click", () => {
   userColors = { ...DEFAULT_COLORS };
   StorageManager.saveColors(userColors);
   initSettings();
+  updateIgnPreview();
   updateTeamUI();
   updateInventoryUI();
 });
@@ -73,8 +166,8 @@ function updateRoleTagButtons() {
   ];
   buttons.forEach(btn => {
     if (!btn) return;
-    btn.className = `role-tag-toggle ${includeRoleTags ? 'active' : 'inactive'}`;
-    btn.innerHTML = includeRoleTags ? `🏷️ Role Tags: ON` : `🚫 Role Tags: OFF`;
+    btn.className = `status-toggle-btn ${includeRoleTags ? 'active' : 'inactive'}`;
+    btn.textContent = includeRoleTags ? "🏷️ Role Tags: ON" : "🚫 Role Tags: OFF";
   });
 }
 
@@ -89,7 +182,7 @@ function toggleRoleTags() {
 function renderSlots() {
   const container = document.getElementById("slotsContainer");
   container.innerHTML = "";
-  const count = vipCheckbox.checked ? 5 : 4;
+  const count = isVip ? 5 : 4;
 
   const equippedItems = [];
   for (let s = 0; s < count; s++) {
@@ -112,7 +205,7 @@ function renderSlots() {
     const slotThumb = document.createElement("div");
     slotThumb.className = "slot-thumb";
     if (currentDef) {
-      slotThumb.innerHTML = `<img src="${currentDef.img}" alt="" onerror="this.style.display='none'">`;
+      slotThumb.innerHTML = `<img src="${currentDef.img}" alt="${currentDef.name}" onerror="this.style.display='none'">`;
     } else {
       slotThumb.innerHTML = `<span class="slot-thumb-empty">+</span>`;
     }
@@ -164,15 +257,67 @@ function renderSlots() {
   updateTeamUI();
 }
 
-function updateTeamUI() {
-  const count = vipCheckbox.checked ? 5 : 4;
-  const raw = buildTeamMessage(teamHeadlineInput.value, userSlots, count, userColors, false, includeRoleTags);
-  const html = buildTeamMessage(teamHeadlineInput.value, userSlots, count, userColors, true, includeRoleTags);
+let renderDebounceTimer = null;
 
-  document.getElementById("teamPreview").innerHTML = html;
+function renderCanvasImageAsync() {
+  clearTimeout(renderDebounceTimer);
+  renderDebounceTimer = setTimeout(async () => {
+    const captureContainer = document.getElementById("teamCaptureContainer");
+    const imgBox = document.getElementById("teamImagePreviewBox");
+    const count = isVip ? 5 : 4;
+    
+    captureContainer.innerHTML = buildTeamImageDom(teamHeadlineInput.value, teamBannerInput.value, userIgn, userSlots, count, userColors, includeRoleTags);
+    const element = document.getElementById("teamCaptureCard");
+    if (!element) return;
+
+    if (typeof html2canvas !== "undefined") {
+      try {
+        const canvas = await html2canvas(element, { backgroundColor: "#151822", scale: 2 });
+        imgBox.innerHTML = `<img src="${canvas.toDataURL('image/png')}" alt="Team Setup Image Preview" style="user-select:none; pointer-events:none;">`;
+      } catch {
+        imgBox.innerHTML = `<div style="padding:15px; color:#ef4444;">Could not generate preview image.</div>`;
+      }
+    }
+  }, 50);
+}
+
+function updateTeamUI() {
+  const count = isVip ? 5 : 4;
+  const limit = isNitro ? 4000 : 2000;
+  const raw = buildTeamMessage(teamHeadlineInput.value, teamBannerInput.value, userIgn, userSlots, count, userColors, false, includeRoleTags);
+  const html = buildTeamMessage(teamHeadlineInput.value, teamBannerInput.value, userIgn, userSlots, count, userColors, true, includeRoleTags);
+
+  const headlineElem = document.getElementById("teamPreviewHeadline");
+  headlineElem.textContent = teamHeadlineInput.value;
+
+  const pre = document.getElementById("teamPreview");
+  const imgBox = document.getElementById("teamImagePreviewBox");
+
+  if (outputMode === 'image') {
+    headlineElem.style.display = "none";
+    pre.style.display = "none";
+    imgBox.style.display = "flex";
+    renderCanvasImageAsync();
+    document.getElementById("teamCopyBtn").textContent = "📷 Copy Setup Image for Discord";
+  } else {
+    headlineElem.style.display = "block";
+    pre.style.display = "block";
+    imgBox.style.display = "none";
+    pre.innerHTML = html;
+    document.getElementById("teamCopyBtn").textContent = "📋 Copy Team Setup for Discord";
+  }
+
   const charBadge = document.getElementById("teamCharCount");
-  charBadge.textContent = `Characters: ${raw.length} / 2,000`;
-  charBadge.className = `char-badge ${raw.length > 2000 ? 'char-warn' : 'char-ok'}`;
+  charBadge.textContent = outputMode === 'image' ? `Mode: PNG Image Export` : `Characters: ${raw.length} / ${limit.toLocaleString()}`;
+  charBadge.className = `char-badge ${raw.length > limit && outputMode !== 'image' ? 'char-warn' : 'char-ok'}`;
+}
+
+async function getCapturedCanvas() {
+  const captureContainer = document.getElementById("teamCaptureContainer");
+  const count = isVip ? 5 : 4;
+  captureContainer.innerHTML = buildTeamImageDom(teamHeadlineInput.value, teamBannerInput.value, userIgn, userSlots, count, userColors, includeRoleTags);
+  const element = document.getElementById("teamCaptureCard");
+  return await html2canvas(element, { backgroundColor: "#151822", scale: 2 });
 }
 
 function renderInventory() {
@@ -239,7 +384,8 @@ function renderInventory() {
 }
 
 function updateInventoryUI() {
-  const chunks = chunkInventoryMessages(invHeadlineInput.value, userInventory, userColors, includeRoleTags);
+  const charLimit = isNitro ? 4000 : 2000;
+  const chunks = chunkInventoryMessages(invHeadlineInput.value, userInventory, userColors, includeRoleTags, charLimit);
   const previewContainer = document.getElementById("invPreviewContainer");
   const actionsContainer = document.getElementById("invActionButtons");
   const charBadge = document.getElementById("invCharBadge");
@@ -249,23 +395,19 @@ function updateInventoryUI() {
 
   if (chunks.length === 1) {
     const c = chunks[0];
-    charBadge.innerHTML = `<span class="char-badge ${c.charCount > 2000 ? 'char-warn' : 'char-ok'}">Characters: ${c.charCount} / 2,000</span>`;
+    charBadge.innerHTML = `<span class="char-badge ${c.charCount > charLimit ? 'char-warn' : 'char-ok'}">Characters: ${c.charCount} / ${charLimit.toLocaleString()}</span>`;
     actionsContainer.innerHTML = `
       <div class="footer-btn-row">
-        <button id="invRoleTagBtnBottom" class="role-tag-toggle ${includeRoleTags ? 'active' : 'inactive'}">
-          ${includeRoleTags ? '🏷️ Role Tags: ON' : '🚫 Role Tags: OFF'}
-        </button>
         <button class="btn" onclick="copyChunk(0, this)">📋 Copy Inventory for Discord</button>
       </div>
     `;
-    document.getElementById("invRoleTagBtnBottom").onclick = toggleRoleTags;
 
     const pre = document.createElement("pre");
     pre.className = "preview-box";
     pre.innerHTML = c.html;
     previewContainer.appendChild(pre);
   } else {
-    charBadge.innerHTML = `<span class="char-badge char-warn">⚠️ Exceeds 2,000 characters! Split into ${chunks.length} parts:</span>`;
+    charBadge.innerHTML = `<span class="char-badge char-warn">⚠️ Exceeds ${charLimit.toLocaleString()} characters! Split into ${chunks.length} parts:</span>`;
     const partsWrapper = document.createElement("div");
     partsWrapper.className = "parts-container";
 
@@ -275,7 +417,7 @@ function updateInventoryUI() {
       partCard.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
           <strong style="font-size:1.1rem;">Part ${c.partNum} of ${c.totalParts}</strong>
-          <span class="char-badge char-ok" style="margin:0;">${c.charCount} / 2,000 chars</span>
+          <span class="char-badge char-ok" style="margin:0;">${c.charCount} / ${charLimit.toLocaleString()} chars</span>
         </div>
         <button class="btn" style="margin-bottom:12px;" onclick="copyChunk(${idx}, this)">📋 Copy Part ${c.partNum} for Discord</button>
         <pre class="preview-box">${c.html}</pre>
@@ -287,7 +429,8 @@ function updateInventoryUI() {
 }
 
 window.copyChunk = function(idx, btn) {
-  const chunks = chunkInventoryMessages(invHeadlineInput.value, userInventory, userColors, includeRoleTags);
+  const charLimit = isNitro ? 4000 : 2000;
+  const chunks = chunkInventoryMessages(invHeadlineInput.value, userInventory, userColors, includeRoleTags, charLimit);
   if (chunks[idx]) {
     navigator.clipboard.writeText(chunks[idx].raw).then(() => {
       const orig = btn.textContent;
@@ -302,16 +445,16 @@ window.copyChunk = function(idx, btn) {
 };
 
 teamHeadlineInput.addEventListener("input", () => {
-  StorageManager.saveHeadlines(teamHeadlineInput.value, invHeadlineInput.value);
+  StorageManager.saveHeadlines(teamHeadlineInput.value, invHeadlineInput.value, teamBannerInput.value);
+  updateTeamUI();
+});
+teamBannerInput.addEventListener("input", () => {
+  StorageManager.saveHeadlines(teamHeadlineInput.value, invHeadlineInput.value, teamBannerInput.value);
   updateTeamUI();
 });
 invHeadlineInput.addEventListener("input", () => {
-  StorageManager.saveHeadlines(teamHeadlineInput.value, invHeadlineInput.value);
+  StorageManager.saveHeadlines(teamHeadlineInput.value, invHeadlineInput.value, teamBannerInput.value);
   updateInventoryUI();
-});
-vipCheckbox.addEventListener("change", () => {
-  StorageManager.saveVip(vipCheckbox.checked);
-  renderSlots();
 });
 
 document.getElementById("btnInvSelectAll").addEventListener("click", () => {
@@ -330,22 +473,72 @@ document.getElementById("btnInvMaxAll").addEventListener("click", () => {
   renderInventory();
 });
 
-document.getElementById("teamCopyBtn").addEventListener("click", () => {
-  const count = vipCheckbox.checked ? 5 : 4;
-  const raw = buildTeamMessage(teamHeadlineInput.value, userSlots, count, userColors, false, includeRoleTags);
-  navigator.clipboard.writeText(raw).then(() => {
-    const btn = document.getElementById("teamCopyBtn");
-    btn.textContent = "✅ Copied to Clipboard!";
-    btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "📋 Copy Team Setup for Discord";
-      btn.classList.remove("copied");
-    }, 2000);
-  });
+document.getElementById("teamCopyBtn").addEventListener("click", async () => {
+  const count = isVip ? 5 : 4;
+  const btn = document.getElementById("teamCopyBtn");
+
+  if (outputMode === 'image') {
+    try {
+      const canvas = await getCapturedCanvas();
+      canvas.toBlob(blob => {
+        if (!blob) {
+          downloadCanvasDirect(canvas);
+          return;
+        }
+        try {
+          navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = "✅ Image Copied to Clipboard!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+              btn.textContent = orig;
+              btn.classList.remove("copied");
+            }, 2000);
+          }).catch(() => {
+            downloadCanvasDirect(canvas);
+          });
+        } catch {
+          downloadCanvasDirect(canvas);
+        }
+      }, "image/png");
+    } catch {
+      alert("Error copying image.");
+    }
+  } else {
+    const raw = buildTeamMessage(teamHeadlineInput.value, teamBannerInput.value, userIgn, userSlots, count, userColors, false, includeRoleTags);
+    navigator.clipboard.writeText(raw).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = "✅ Copied to Clipboard!";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove("copied");
+      }, 2000);
+    });
+  }
+});
+
+function downloadCanvasDirect(canvas) {
+  const link = document.createElement("a");
+  link.download = `team_setup_${Date.now()}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+teamDownloadImgBtn.addEventListener("click", async () => {
+  try {
+    const canvas = await getCapturedCanvas();
+    downloadCanvasDirect(canvas);
+  } catch (err) {
+    alert("Could not download image: " + err.message);
+  }
 });
 
 document.getElementById("teamRoleTagBtn").onclick = toggleRoleTags;
 document.getElementById("invRoleTagBtnTop").onclick = toggleRoleTags;
+document.getElementById("invRoleTagBtnBottom").onclick = toggleRoleTags;
 
 initSettings();
 updateRoleTagButtons();
