@@ -137,6 +137,9 @@ const TeamUI = {
     document.getElementById("teamPreviewHeadline").textContent = headline;
     document.getElementById("teamPreview").innerHTML = html;
 
+    const subtextEl = document.getElementById("teamPreviewSubtext");
+    if (subtextEl) subtextEl.innerHTML = PROMO_FOOTER_HTML;
+
     const charBadge = document.getElementById("teamCharCount");
     charBadge.textContent = `Characters: ${raw.length} / ${limit.toLocaleString()}`;
     charBadge.className = `char-badge ${raw.length > limit ? 'char-warn' : 'char-ok'}`;

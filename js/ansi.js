@@ -3,6 +3,9 @@ const PAD_NAME = 17;
 const PAD_LVL  = 10;
 const ESC = "\u001b";
 
+const PROMO_FOOTER_RAW = "-# ⚡ Generated with [STN Showcase](https://lordjunes.github.io/STNShowcase/)";
+const PROMO_FOOTER_HTML = `⚡ Generated with <a href="https://lordjunes.github.io/STNShowcase/" target="_blank" rel="noopener">STN Showcase</a>`;
+
 function getAnsiHex(code) {
   const found = ANSI_OPTIONS.find(o => o.code === code);
   return found ? found.hex : "#ffffff";
@@ -102,12 +105,15 @@ function buildTeamMessage(headline, banner, ign, slots, count, colors, isHtml = 
     }
   }
 
-  if (!isHtml) lines.push("```");
+  if (!isHtml) {
+    lines.push("```");
+    lines.push(PROMO_FOOTER_RAW);
+  }
   return lines.join("\n");
 }
 
 function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, colors, includeRoleTag = true, maxChars = 2000) {
-  const threshold = maxChars - 180;
+  const threshold = maxChars - 260;
   const owned = ITEMS.filter(it => invData[it.name] && invData[it.name].owned);
   const bannerAnsi = colors.BANNER || "36";
   const bannerHex = getAnsiHex(bannerAnsi);
@@ -127,10 +133,10 @@ function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, 
     const subRaw = formatSub(true);
     const subHtml = formatSub(false);
     return [{
-      raw: `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m\n${subRaw}\n(No units selected)\n\`\`\``,
+      raw: `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m\n${subRaw}\n(No units selected)\n\`\`\`\n${PROMO_FOOTER_RAW}`,
       headlineHtml: headline,
       html: `<span style="color:${bannerHex}; font-weight:bold;">${bannerText}</span>\n${subHtml}\n<span style="color:#72767d; font-style:italic;">(No units selected)</span>`,
-      charCount: 120,
+      charCount: 120 + PROMO_FOOTER_RAW.length,
       partNum: 1,
       totalParts: 1
     }];
@@ -150,7 +156,7 @@ function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, 
 
   for (let i = 0; i < lines.length; i++) {
     const subRaw = formatSub(true);
-    const testCandidate = `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m\n${subRaw}\n` + [...curRaw, lines[i].raw].join('\n') + `\n\`\`\``;
+    const testCandidate = `**${headline}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m\n${subRaw}\n` + [...curRaw, lines[i].raw].join('\n') + `\n\`\`\`\n${PROMO_FOOTER_RAW}`;
     if (testCandidate.length > threshold && curRaw.length > 0) {
       chunks.push({ rawLines: curRaw, htmlLines: curHtml });
       curRaw = [lines[i].raw];
@@ -169,7 +175,7 @@ function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, 
     const subRaw = formatSub(true);
     const subHtml = formatSub(false);
 
-    const raw = `**${headline}${partLabel}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${partLabel}${ESC}[0m\n${subRaw}\n` + chunk.rawLines.join('\n') + `\n\`\`\``;
+    const raw = `**${headline}${partLabel}**\n\`\`\`ansi\n${ESC}[1;${bannerAnsi}m${bannerText}${partLabel}${ESC}[0m\n${subRaw}\n` + chunk.rawLines.join('\n') + `\n\`\`\`\n${PROMO_FOOTER_RAW}`;
     const headlineHtml = `${headline}${partLabel}`;
     const html = `<span style="color:${bannerHex}; font-weight:bold;">${bannerText}${partLabel}</span>\n${subHtml}\n` + chunk.htmlLines.join('\n');
     return { raw, headlineHtml, html, partNum, totalParts, charCount: raw.length };

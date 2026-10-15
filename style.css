@@ -175,6 +175,19 @@ select { background: #0c0e15; border: 1px solid var(--border); border-radius: 6p
   line-height: 1.55;
 }
 
+.preview-subtext {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-top: 8px;
+  display: block;
+  user-select: none;
+}
+.preview-subtext a {
+  color: #5865f2;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
 .preview-image-card {
   display: flex;
   flex-direction: column;

@@ -145,8 +145,13 @@ const RequirementsUI = {
       pre.className = "preview-box";
       pre.innerHTML = c.html;
 
+      const subtextEl = document.createElement("div");
+      subtextEl.className = "preview-subtext";
+      subtextEl.innerHTML = PROMO_FOOTER_HTML;
+
       previewContainer.appendChild(headlineEl);
       previewContainer.appendChild(pre);
+      previewContainer.appendChild(subtextEl);
     } else {
       charBadge.innerHTML = `<span class="char-badge char-warn">⚠️ Exceeds ${charLimit.toLocaleString()} characters! Split into ${chunks.length} parts:</span>`;
       const partsWrapper = document.createElement("div");
@@ -163,6 +168,7 @@ const RequirementsUI = {
           <button class="btn" style="margin-bottom:12px;" onclick="RequirementsUI.copyPart(${idx}, this)">📋 Copy Part ${c.partNum} for Discord</button>
           <div class="preview-headline">${escapeXml(c.headlineHtml)}</div>
           <pre class="preview-box">${c.html}</pre>
+          <div class="preview-subtext">${PROMO_FOOTER_HTML}</div>
         `;
         partsWrapper.appendChild(partCard);
       });
