@@ -1,6 +1,6 @@
-const PAD_TAG  = 11;
+const PAD_TAG = 11;
 const PAD_NAME = 17;
-const PAD_LVL  = 10;
+const PAD_LVL = 10;
 const ESC = "\u001b";
 
 const PROMO_FOOTER_RAW = "-# ⚡ Generated with [STN Showcase](https://lordjunes.github.io/STNShowcase/)";
@@ -49,61 +49,79 @@ function formatSetupLine(itemDef, role, lvl, max, colors, isHtml = false, includ
     const maxHtml = isMax ? ` <span style="color:#72767d;">(MAX)</span>` : '';
     return `${rolePrefixHtml}` +
            `<span style="color:${itemColor}; font-weight:bold;">${namePadded}</span> ` +
-           `<span style="color:#ffffff;">───</span>  ` +
+           `<span style="color:#ffffff;">───</span> ` +
            `<span style="color:#ffffff;">${lvlString}</span>${maxHtml}`;
   } else {
     const maxAnsi = isMax ? ` ${ESC}[1;30m(MAX)${ESC}[0m` : '';
     return `${rolePrefixAnsi}` +
            `${ESC}[1;${itemAnsi}m${namePadded}${ESC}[0m ` +
-           `${ESC}[1;37m───${ESC}[0m  ` +
+           `${ESC}[1;37m───${ESC}[0m ` +
            `${ESC}[1;37m${lvlString}${ESC}[0m${maxAnsi}`;
   }
 }
 
-function buildTeamMessage(headline, banner, ign, slots, count, colors, isHtml = false, includeRoleTag = true) {
+function buildTeamMessage(headline, ign, loadouts, count, colors, isHtml = false, includeRoleTag = true) {
   let lines = [];
-  const bannerText = banner && banner.trim() ? banner.trim() : "=== MY SETUP ===";
   const bannerAnsi = colors.BANNER || "36";
   const bannerHex = getAnsiHex(bannerAnsi);
   const ignAnsi = colors.IGN || "32";
   const ignHex = getAnsiHex(ignAnsi);
 
-  if (isHtml) {
-    lines.push(`<span style="color:${bannerHex}; font-weight:bold;">${bannerText}</span>`);
-    if (ign && ign.trim()) {
-      lines.push(`<span style="color:${ignHex}; font-weight:bold;">Ingame Name: ${ign.trim()}</span>\n`);
-    } else {
-      lines.push("");
-    }
-  } else {
+  if (!isHtml) {
     lines.push(`**${headline}**`);
     lines.push("```ansi");
-    lines.push(`${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m`);
-    if (ign && ign.trim()) {
-      lines.push(`${ESC}[1;${ignAnsi}mIngame Name: ${ign.trim()}${ESC}[0m\n`);
-    } else {
+  }
+
+  let list = Array.isArray(loadouts) && loadouts.length > 0 && loadouts[0].slots ? loadouts : [{ banner: "=== MY FIRST SETUP ===", slots: loadouts }];
+  let activeSectionsCount = 0;
+
+  list.forEach((ld, idx) => {
+    const hasUnits = ld.slots.slice(0, count).some(s => s && s.item);
+	
+    if (idx > 0 && !hasUnits) return;
+
+    if (activeSectionsCount > 0) {
       lines.push("");
     }
-  }
+    activeSectionsCount++;
 
-  let activeCount = 0;
-  for (let i = 0; i < count; i++) {
-    const slot = slots[i];
-    if (!slot || !slot.item) continue;
-    const def = ITEMS.find(x => x.name === slot.item);
-    if (!def) continue;
+    const bannerText = ld.banner && ld.banner.trim() ? ld.banner.trim() : (idx === 0 ? "=== MY FIRST SETUP ===" : idx === 1 ? "=== MY SECOND SETUP ===" : "=== MY THIRD SETUP ===");
 
-    activeCount++;
-    lines.push(formatSetupLine(def, slot.role || def.role, slot.lvl, def.max, colors, isHtml, includeRoleTag));
-  }
-
-  if (activeCount === 0) {
     if (isHtml) {
-      lines.push(`<span style="color:#72767d; font-style:italic;">(No units selected)</span>`);
+      lines.push(`<span style="color:${bannerHex}; font-weight:bold;">${bannerText}</span>`);
+      if (idx === 0 && ign && ign.trim()) {
+        lines.push(`<span style="color:${ignHex}; font-weight:bold;">Ingame Name: ${ign.trim()}</span>\n`);
+      } else {
+        lines.push("");
+      }
     } else {
-      lines.push(`${ESC}[1;30m(No units selected)${ESC}[0m`);
+      lines.push(`${ESC}[1;${bannerAnsi}m${bannerText}${ESC}[0m`);
+      if (idx === 0 && ign && ign.trim()) {
+        lines.push(`${ESC}[1;${ignAnsi}mIngame Name: ${ign.trim()}${ESC}[0m\n`);
+      } else {
+        lines.push("");
+      }
     }
-  }
+
+    let activeInThisLoadout = 0;
+    for (let i = 0; i < count; i++) {
+      const slot = ld.slots[i];
+      if (!slot || !slot.item) continue;
+      const def = ITEMS.find(x => x.name === slot.item);
+      if (!def) continue;
+
+      activeInThisLoadout++;
+      lines.push(formatSetupLine(def, slot.role || def.role, slot.lvl, def.max, colors, isHtml, includeRoleTag));
+    }
+
+    if (activeInThisLoadout === 0) {
+      if (isHtml) {
+        lines.push(`<span style="color:#72767d; font-style:italic;">(No units selected)</span>`);
+      } else {
+        lines.push(`${ESC}[1;30m(No units selected)${ESC}[0m`);
+      }
+    }
+  });
 
   if (!isHtml) {
     lines.push("```");

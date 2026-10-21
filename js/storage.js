@@ -9,11 +9,7 @@ const StorageManager = {
     localStorage.setItem('td_setup_colors', JSON.stringify(colors));
   },
 
-  loadSlots() {
-    try {
-      const data = localStorage.getItem('td_setup_slots');
-      if (data) return JSON.parse(data);
-    } catch {}
+  defaultSlots() {
     return [
       { item: null, role: "DAMAGE", lvl: 1 },
       { item: null, role: "SUPPORT", lvl: 1 },
@@ -22,8 +18,45 @@ const StorageManager = {
       { item: null, role: "PET", lvl: 1 }
     ];
   },
+
+  loadLoadouts() {
+    try {
+      const data = localStorage.getItem('td_setup_loadouts');
+      if (data) return JSON.parse(data);
+    } catch {}
+
+    let oldSlots = null;
+    try {
+      const oldData = localStorage.getItem('td_setup_slots');
+      if (oldData) oldSlots = JSON.parse(oldData);
+    } catch {}
+
+    const oldBanner = localStorage.getItem('td_banner_team') || "=== MY FIRST SETUP ===";
+
+    const initialLoadouts = [
+      { 
+        banner: (oldBanner === "=== MY SETUP ===" || !oldBanner) ? "=== MY FIRST SETUP ===" : oldBanner, 
+        slots: oldSlots || this.defaultSlots() 
+      },
+      { banner: "=== MY SECOND SETUP ===", slots: this.defaultSlots() },
+      { banner: "=== MY THIRD SETUP ===", slots: this.defaultSlots() }
+    ];
+
+    localStorage.setItem('td_setup_loadouts', JSON.stringify(initialLoadouts));
+    return initialLoadouts;
+  },
+
+  saveLoadouts(loadouts) {
+    localStorage.setItem('td_setup_loadouts', JSON.stringify(loadouts));
+  },
+
+  loadSlots() {
+    return this.loadLoadouts()[0].slots;
+  },
   saveSlots(slots) {
-    localStorage.setItem('td_setup_slots', JSON.stringify(slots));
+    const loadouts = this.loadLoadouts();
+    loadouts[0].slots = slots;
+    this.saveLoadouts(loadouts);
   },
 
   loadVip() {
@@ -102,7 +135,7 @@ const StorageManager = {
   loadHeadlines() {
     return {
       team: localStorage.getItem('td_headline_team') || "Looking for a team to farm Impossible",
-      banner: localStorage.getItem('td_banner_team') || "=== MY SETUP ===",
+      banner: localStorage.getItem('td_banner_team') || "=== MY FIRST SETUP ===",
       inv: localStorage.getItem('td_headline_inv') || "Everything i have",
       reqHeadline: localStorage.getItem('td_req_headline') || "We need one more Person for Clan fight/Clan Join Requirements",
       reqBanner: localStorage.getItem('td_req_banner') || "Required Units to Join our Team/Clan to Farm/Join",
@@ -120,10 +153,10 @@ const StorageManager = {
 
   exportAllData() {
     const backup = {
-      version: 3,
+      version: 4,
       timestamp: new Date().toISOString(),
       colors: this.loadColors(),
-      slots: this.loadSlots(),
+      loadouts: this.loadLoadouts(),
       vip: this.loadVip(),
       nitro: this.loadNitro(),
       ign: this.loadIgn(),
@@ -145,7 +178,15 @@ const StorageManager = {
     try {
       const data = JSON.parse(jsonString);
       if (data.colors) this.saveColors(data.colors);
-      if (data.slots) this.saveSlots(data.slots);
+      if (data.loadouts) {
+        this.saveLoadouts(data.loadouts);
+      } else if (data.slots) {
+        this.saveLoadouts([
+          { banner: (data.headlines && data.headlines.banner) || "=== MY FIRST SETUP ===", slots: data.slots },
+          { banner: "=== MY SECOND SETUP ===", slots: this.defaultSlots() },
+          { banner: "=== MY THIRD SETUP ===", slots: this.defaultSlots() }
+        ]);
+      }
       if (typeof data.vip === 'boolean') this.saveVip(data.vip);
       if (typeof data.nitro === 'boolean') this.saveNitro(data.nitro);
       if (typeof data.ign === 'string') this.saveIgn(data.ign);

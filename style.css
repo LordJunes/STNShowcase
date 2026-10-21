@@ -85,6 +85,35 @@ input[type="text"] { width: 100%; background: var(--card-inner); border: 1px sol
 }
 .status-toggle-btn.inactive:hover { background: #b91c1c; }
 
+/* LOADOUT TABS */
+.loadout-nav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.loadout-tab-btn {
+  flex: 1;
+  padding: 11px 16px;
+  background: var(--card-inner);
+  border: 1px solid var(--border);
+  color: #94a3b8;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.loadout-tab-btn:hover {
+  background: #1e2436;
+  color: #fff;
+}
+.loadout-tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(88, 101, 242, 0.4);
+}
+
 .slot-card { 
   display: grid; 
   grid-template-columns: 75px 54px 1.8fr 110px 145px; 

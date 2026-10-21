@@ -26,6 +26,12 @@
 
   <main id="teamTab" class="tab-content active">
     <section class="card">
+      <div class="loadout-nav">
+        <button type="button" class="loadout-tab-btn active" data-loadout="0">Loadout 1</button>
+        <button type="button" class="loadout-tab-btn" data-loadout="1">Loadout 2</button>
+        <button type="button" class="loadout-tab-btn" data-loadout="2">Loadout 3</button>
+      </div>
+
       <div class="header-row">
         <div class="header-inputs-col">
           <div class="highlight-field-wrap">
@@ -35,7 +41,7 @@
           <div class="sub-header-row">
             <div class="highlight-field-wrap">
               <label for="teamBanner">✏️ Section Subtitle / Banner</label>
-              <input type="text" id="teamBanner" value="=== MY SETUP ===" placeholder="Banner text...">
+              <input type="text" id="teamBanner" value="=== MY FIRST SETUP ===" placeholder="Banner text...">
             </div>
             <button id="vipToggleBtn" class="status-toggle-btn inactive" type="button" style="height: 52px; margin-top: auto;">⭐ VIP: 4 Slots</button>
           </div>

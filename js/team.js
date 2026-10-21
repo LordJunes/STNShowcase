@@ -1,10 +1,11 @@
 const TeamUI = {
-  slots: [],
+  loadouts: [],
+  activeLoadoutIdx: 0,
   isVip: false,
   timer: null,
 
   init() {
-    this.slots = StorageManager.loadSlots();
+    this.loadouts = StorageManager.loadLoadouts();
     this.isVip = StorageManager.loadVip();
 
     const teamHeadlineInput = document.getElementById("teamHeadline");
@@ -13,9 +14,10 @@ const TeamUI = {
 
     const headlines = StorageManager.loadHeadlines();
     teamHeadlineInput.value = headlines.team;
-    teamBannerInput.value = headlines.banner;
+    teamBannerInput.value = this.loadouts[this.activeLoadoutIdx].banner || "=== MY FIRST SETUP ===";
 
     this.updateVipButton();
+    this.initLoadoutButtons();
 
     vipToggleBtn.onclick = () => {
       this.isVip = !this.isVip;
@@ -25,12 +27,13 @@ const TeamUI = {
     };
 
     teamHeadlineInput.oninput = () => {
-      StorageManager.saveHeadlines(teamHeadlineInput.value, undefined, teamBannerInput.value);
+      StorageManager.saveHeadlines(teamHeadlineInput.value, undefined, undefined);
       this.updateUI();
     };
 
     teamBannerInput.oninput = () => {
-      StorageManager.saveHeadlines(teamHeadlineInput.value, undefined, teamBannerInput.value);
+      this.loadouts[this.activeLoadoutIdx].banner = teamBannerInput.value;
+      StorageManager.saveLoadouts(this.loadouts);
       this.updateUI();
     };
 
@@ -41,26 +44,48 @@ const TeamUI = {
     this.renderSlots();
   },
 
+  initLoadoutButtons() {
+    const btns = document.querySelectorAll(".loadout-tab-btn");
+    btns.forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.dataset.loadout, 10);
+        if (this.activeLoadoutIdx === idx) return;
+
+        this.activeLoadoutIdx = idx;
+        btns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        document.getElementById("teamBanner").value = this.loadouts[this.activeLoadoutIdx].banner;
+        this.renderSlots();
+      };
+    });
+  },
+
   updateVipButton() {
     const btn = document.getElementById("vipToggleBtn");
     btn.className = `status-toggle-btn ${this.isVip ? 'active' : 'inactive'}`;
     btn.textContent = this.isVip ? "⭐ VIP: 5 Slots" : "⭐ VIP: 4 Slots";
   },
 
+  getCurrentSlots() {
+    return this.loadouts[this.activeLoadoutIdx].slots;
+  },
+
   renderSlots() {
     const container = document.getElementById("slotsContainer");
     container.innerHTML = "";
     const count = this.isVip ? 5 : 4;
+    const currentSlots = this.getCurrentSlots();
 
     const equippedItems = [];
     for (let s = 0; s < count; s++) {
-      if (this.slots[s] && this.slots[s].item) {
-        equippedItems.push(this.slots[s].item);
+      if (currentSlots[s] && currentSlots[s].item) {
+        equippedItems.push(currentSlots[s].item);
       }
     }
 
     for (let i = 0; i < count; i++) {
-      const slot = this.slots[i] || { item: null, role: "DAMAGE", lvl: 1 };
+      const slot = currentSlots[i] || { item: null, role: "DAMAGE", lvl: 1 };
       const currentDef = slot.item ? ITEMS.find(x => x.name === slot.item) : null;
 
       const div = document.createElement("div");
@@ -88,14 +113,14 @@ const TeamUI = {
 
       const dropdown = createCustomDropdown(i, slot.item, unavailable, (selectedItem) => {
         if (selectedItem) {
-          this.slots[i].item = selectedItem.name;
-          this.slots[i].role = selectedItem.role;
-          this.slots[i].lvl = 1;
+          currentSlots[i].item = selectedItem.name;
+          currentSlots[i].role = selectedItem.role;
+          currentSlots[i].lvl = 1;
         } else {
-          this.slots[i].item = null;
-          this.slots[i].lvl = 1;
+          currentSlots[i].item = null;
+          currentSlots[i].lvl = 1;
         }
-        StorageManager.saveSlots(this.slots);
+        StorageManager.saveLoadouts(this.loadouts);
         this.renderSlots();
       });
 
@@ -110,8 +135,8 @@ const TeamUI = {
       }
       lvlSel.disabled = !currentDef;
       lvlSel.onchange = () => {
-        this.slots[i].lvl = parseInt(lvlSel.value, 10) || 1;
-        StorageManager.saveSlots(this.slots);
+        currentSlots[i].lvl = parseInt(lvlSel.value, 10) || 1;
+        StorageManager.saveLoadouts(this.loadouts);
         this.updateUI();
       };
 
@@ -127,12 +152,11 @@ const TeamUI = {
 
   updateUI() {
     const headline = document.getElementById("teamHeadline").value;
-    const banner = document.getElementById("teamBanner").value;
     const count = this.isVip ? 5 : 4;
     const limit = isNitro ? 4000 : 2000;
 
-    const raw = buildTeamMessage(headline, banner, userIgn, this.slots, count, userColors, false, includeRoleTags);
-    const html = buildTeamMessage(headline, banner, userIgn, this.slots, count, userColors, true, includeRoleTags);
+    const raw = buildTeamMessage(headline, userIgn, this.loadouts, count, userColors, false, includeRoleTags);
+    const html = buildTeamMessage(headline, userIgn, this.loadouts, count, userColors, true, includeRoleTags);
 
     document.getElementById("teamPreviewHeadline").textContent = headline;
     document.getElementById("teamPreview").innerHTML = html;
@@ -151,12 +175,11 @@ const TeamUI = {
     clearTimeout(this.timer);
     this.timer = setTimeout(async () => {
       const headline = document.getElementById("teamHeadline").value;
-      const banner = document.getElementById("teamBanner").value;
       const count = this.isVip ? 5 : 4;
       const imgBox = document.getElementById("teamImagePreviewBox");
 
       try {
-        const canvas = await CanvasManager.captureCanvas(headline, banner, userIgn, this.slots, count, userColors, includeRoleTags);
+        const canvas = await CanvasManager.captureCanvas(headline, userIgn, this.loadouts, count, userColors, includeRoleTags);
         imgBox.innerHTML = `<img src="${canvas.toDataURL('image/png')}" alt="Team Setup Image Preview" style="user-select:none; pointer-events:none;">`;
       } catch {
         imgBox.innerHTML = `<div style="padding:15px; color:#ef4444;">Could not generate image preview.</div>`;
@@ -166,9 +189,8 @@ const TeamUI = {
 
   async copyText() {
     const headline = document.getElementById("teamHeadline").value;
-    const banner = document.getElementById("teamBanner").value;
     const count = this.isVip ? 5 : 4;
-    const raw = buildTeamMessage(headline, banner, userIgn, this.slots, count, userColors, false, includeRoleTags);
+    const raw = buildTeamMessage(headline, userIgn, this.loadouts, count, userColors, false, includeRoleTags);
     const btn = document.getElementById("teamCopyBtn");
 
     await navigator.clipboard.writeText(raw);
@@ -183,12 +205,11 @@ const TeamUI = {
 
   async copyImage() {
     const headline = document.getElementById("teamHeadline").value;
-    const banner = document.getElementById("teamBanner").value;
     const count = this.isVip ? 5 : 4;
     const btn = document.getElementById("teamCopyImgBtn");
 
     try {
-      const canvas = await CanvasManager.captureCanvas(headline, banner, userIgn, this.slots, count, userColors, includeRoleTags);
+      const canvas = await CanvasManager.captureCanvas(headline, userIgn, this.loadouts, count, userColors, includeRoleTags);
       canvas.toBlob(blob => {
         if (!blob) {
           CanvasManager.downloadCanvas(canvas);
@@ -211,10 +232,9 @@ const TeamUI = {
 
   async downloadImage() {
     const headline = document.getElementById("teamHeadline").value;
-    const banner = document.getElementById("teamBanner").value;
     const count = this.isVip ? 5 : 4;
     try {
-      const canvas = await CanvasManager.captureCanvas(headline, banner, userIgn, this.slots, count, userColors, includeRoleTags);
+      const canvas = await CanvasManager.captureCanvas(headline, userIgn, this.loadouts, count, userColors, includeRoleTags);
       CanvasManager.downloadCanvas(canvas);
     } catch {
       alert("Error downloading image.");
