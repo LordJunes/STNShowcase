@@ -88,6 +88,13 @@ const StorageManager = {
     localStorage.setItem('td_include_role_tags', includeTags ? 'true' : 'false');
   },
 
+  loadShowUnownedInImage() {
+    return localStorage.getItem('td_inv_show_unowned') === 'true';
+  },
+  saveShowUnownedInImage(val) {
+    localStorage.setItem('td_inv_show_unowned', val ? 'true' : 'false');
+  },
+
   loadInventory() {
     let inv = {};
     ITEMS.forEach(it => { inv[it.name] = { owned: false, lvl: 1, max: it.max }; });
@@ -161,6 +168,7 @@ const StorageManager = {
       nitro: this.loadNitro(),
       ign: this.loadIgn(),
       includeRoleTags: this.loadIncludeRoleTags(),
+      showUnownedInImage: this.loadShowUnownedInImage(),
       inventory: this.loadInventory(),
       requirements: this.loadRequirements(),
       headlines: this.loadHeadlines()
@@ -191,6 +199,7 @@ const StorageManager = {
       if (typeof data.nitro === 'boolean') this.saveNitro(data.nitro);
       if (typeof data.ign === 'string') this.saveIgn(data.ign);
       if (typeof data.includeRoleTags === 'boolean') this.saveIncludeRoleTags(data.includeRoleTags);
+      if (typeof data.showUnownedInImage === 'boolean') this.saveShowUnownedInImage(data.showUnownedInImage);
       if (data.inventory) this.saveInventory(data.inventory);
       if (data.requirements) this.saveRequirements(data.requirements);
       if (data.headlines) {

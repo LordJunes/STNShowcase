@@ -91,7 +91,8 @@
         <button id="btnInvDeselectAll">Deselect All</button>
         <button id="btnInvMaxAll">Set All to Max Level</button>
         <button id="btnOpenScanner" class="btn-scanner">📷 Scan Screenshot (OCR) WIP</button>
-        <button id="invRoleTagBtnTop" class="status-toggle-btn active" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">🏷️ Role Tags: ON</button>
+        <button id="btnInvToggleUnowned" class="status-toggle-btn inactive" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">👁️ Show Unowned: OFF</button>
+        <button id="invRoleTagBtnTop" class="status-toggle-btn active" style="padding:8px 14px; font-size:0.95rem;">🏷️ Role Tags: ON</button>
       </div>
 
       <div id="inventoryContainer"></div>
@@ -102,12 +103,20 @@
           <button id="invNitroBtn" class="status-toggle-btn inactive" type="button">🚀 Discord Nitro: OFF (2000)</button>
           <button id="invRoleTagBtnBottom" class="status-toggle-btn active">🏷️ Role Tags: ON</button>
         </div>
+        <div class="footer-btn-row" style="margin-top: 8px;">
+          <button class="btn btn-secondary" id="invCopyImgBtn">📷 Copy Inventory Image for Discord</button>
+          <button class="btn btn-secondary" id="invDownloadImgBtn">💾 Download Inventory Image for Discord</button>
+        </div>
         <div id="invActionButtons"></div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Discord Preview</h2>
+      <h2>Discord Image Preview</h2>
+      <div id="invImagePreviewBox" class="preview-image-card"></div>
+      <div id="invCaptureContainer" style="position: absolute; left: -9999px; top: -9999px;"></div>
+
+      <h2 style="margin-top: 30px;">Discord Text Preview (ANSI)</h2>
       <div id="invPreviewContainer"></div>
     </section>
   </main>
