@@ -3,6 +3,7 @@ const InventoryUI = {
   nitro: false,
   includeRoleTags: true,
   showUnowned: false,
+  sortMode: "category",
   imgTimer: null,
 
   init() {
@@ -10,11 +11,31 @@ const InventoryUI = {
     this.nitro = StorageManager.loadNitro();
     this.includeRoleTags = StorageManager.loadIncludeRoleTags();
     this.showUnowned = StorageManager.loadShowUnownedInImage();
+    this.sortMode = StorageManager.loadInvSortMode();
 
+    const headlines = StorageManager.loadHeadlines();
     const invHeadlineInput = document.getElementById("invHeadline");
-    invHeadlineInput.value = StorageManager.loadHeadlines().inv;
+    const invBannerInput = document.getElementById("invBanner");
+    const invSortSelect = document.getElementById("invSortSelect");
+
+    invHeadlineInput.value = headlines.inv;
+    invBannerInput.value = headlines.invBanner || "";
+    invSortSelect.value = this.sortMode;
+
     invHeadlineInput.oninput = () => {
-      StorageManager.saveHeadlines(undefined, invHeadlineInput.value, undefined);
+      StorageManager.saveHeadlines(undefined, invHeadlineInput.value, undefined, invBannerInput.value);
+      this.updateUI();
+    };
+
+    invBannerInput.oninput = () => {
+      StorageManager.saveHeadlines(undefined, invHeadlineInput.value, undefined, invBannerInput.value);
+      this.updateUI();
+    };
+
+    invSortSelect.onchange = () => {
+      this.sortMode = invSortSelect.value;
+      StorageManager.saveInvSortMode(this.sortMode);
+      this.renderItems();
       this.updateUI();
     };
 
@@ -36,7 +57,7 @@ const InventoryUI = {
       this.updateRoleTagButtons();
       this.updateUI();
       if (typeof TeamUI !== 'undefined') TeamUI.renderSlots();
-      if (typeof RequirementsUI !== 'undefined') RequirementsUI.updateUI();
+      if (typeof ClanBattleUI !== 'undefined') ClanBattleUI.updateUI();
     };
 
     document.getElementById("invRoleTagBtnTop").onclick = toggleTags;
@@ -85,11 +106,13 @@ const InventoryUI = {
       ITEMS.forEach(it => { this.inv[it.name].owned = true; });
       this.renderItems();
       this.updateUI();
+      if (typeof TeamUI !== 'undefined') TeamUI.renderSlots();
     };
     document.getElementById("btnInvDeselectAll").onclick = () => {
       ITEMS.forEach(it => { this.inv[it.name].owned = false; });
       this.renderItems();
       this.updateUI();
+      if (typeof TeamUI !== 'undefined') TeamUI.renderSlots();
     };
     document.getElementById("btnInvMaxAll").onclick = () => {
       ITEMS.forEach(it => {
@@ -98,100 +121,117 @@ const InventoryUI = {
       });
       this.renderItems();
       this.updateUI();
+      if (typeof TeamUI !== 'undefined') TeamUI.renderSlots();
     };
-
-    const btnScan = document.getElementById("btnOpenScanner");
-    if (btnScan) {
-      btnScan.onclick = () => ScannerUI.open();
-    }
   },
 
   renderItems() {
     const container = document.getElementById("inventoryContainer");
     container.innerHTML = "";
 
-    const categories = [
-      { role: "DAMAGE", label: "DAMAGE UNITS", icon: "⚔️", color: "#ed4245" },
-      { role: "SUPPORT", label: "SUPPORT UNITS", icon: "🛡️", color: "#57f287" },
-      { role: "FARM", label: "FARM UNITS", icon: "🌾", color: "#fee75c" },
-      { role: "PET", label: "PET UNITS", icon: "🐾", color: "#5865f2" }
-    ];
+    const renderCard = (it) => {
+      const itemState = this.inv[it.name];
+      const card = document.createElement("div");
+      card.className = `inv-item ${itemState.owned ? 'owned' : 'not-owned'}`;
 
-    categories.forEach(cat => {
-      const itemsInCat = ITEMS.filter(it => it.role === cat.role);
-      if (itemsInCat.length === 0) return;
-
-      const block = document.createElement("div");
-      block.className = "inventory-category-block";
-
-      const title = document.createElement("div");
-      title.className = "inv-cat-title";
-      title.style.color = cat.color;
-      title.innerHTML = `<span>${cat.icon}</span> <span>${cat.label}</span>`;
-      block.appendChild(title);
-
-      const grid = document.createElement("div");
-      grid.className = "inventory-grid";
-
-      itemsInCat.forEach(it => {
-        const itemState = this.inv[it.name];
-        const card = document.createElement("div");
+      const chkBox = document.createElement("div");
+      chkBox.className = `inv-status-box ${itemState.owned ? 'checked' : 'unchecked'}`;
+      chkBox.textContent = itemState.owned ? "✓" : "✕";
+      chkBox.onclick = () => {
+        itemState.owned = !itemState.owned;
         card.className = `inv-item ${itemState.owned ? 'owned' : 'not-owned'}`;
-
-        const chkBox = document.createElement("div");
         chkBox.className = `inv-status-box ${itemState.owned ? 'checked' : 'unchecked'}`;
         chkBox.textContent = itemState.owned ? "✓" : "✕";
-        chkBox.onclick = () => {
-          itemState.owned = !itemState.owned;
-          card.className = `inv-item ${itemState.owned ? 'owned' : 'not-owned'}`;
-          chkBox.className = `inv-status-box ${itemState.owned ? 'checked' : 'unchecked'}`;
-          chkBox.textContent = itemState.owned ? "✓" : "✕";
-          this.updateUI();
-        };
+        this.updateUI();
+        if (typeof TeamUI !== 'undefined') TeamUI.renderSlots();
+      };
 
-        const thumb = document.createElement("div");
-        thumb.className = "inv-thumb";
-        thumb.innerHTML = `<img src="${it.img}" alt="${it.name}" onerror="this.style.display='none'">`;
-        thumb.onclick = chkBox.onclick;
+      const thumb = document.createElement("div");
+      thumb.className = "inv-thumb";
+      thumb.innerHTML = `<img src="${it.img}" alt="${it.name}" onerror="this.style.display='none'">`;
+      thumb.onclick = chkBox.onclick;
 
-        const nameSpan = document.createElement("div");
-        nameSpan.className = "inv-name";
-        const rarityHex = getAnsiHex(userColors[it.rarity]);
-        nameSpan.style.color = rarityHex;
-        nameSpan.textContent = it.name;
-        nameSpan.onclick = chkBox.onclick;
+      const nameSpan = document.createElement("div");
+      nameSpan.className = "inv-name";
+      const rarityHex = getAnsiHex(userColors[it.rarity]);
+      nameSpan.style.color = rarityHex;
+      nameSpan.textContent = it.name;
+      nameSpan.onclick = chkBox.onclick;
 
-        const sel = document.createElement("select");
-        for (let l = 1; l <= it.max; l++) {
-          const opt = document.createElement("option");
-          opt.value = l;
-          opt.textContent = `Lvl ${l}/${it.max}${l === it.max ? ' (MAX)' : ''}`;
-          if (itemState.lvl === l) opt.selected = true;
-          sel.appendChild(opt);
-        }
-        sel.onchange = () => {
-          itemState.lvl = parseInt(sel.value, 10);
-          this.updateUI();
-        };
+      const sel = document.createElement("select");
+      for (let l = 1; l <= it.max; l++) {
+        const opt = document.createElement("option");
+        opt.value = l;
+        opt.textContent = `Lvl ${l}/${it.max}${l === it.max ? ' (MAX)' : ''}`;
+        if (itemState.lvl === l) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.onchange = () => {
+        itemState.lvl = parseInt(sel.value, 10);
+        this.updateUI();
+        if (typeof TeamUI !== 'undefined') TeamUI.renderSlots();
+      };
 
-        card.appendChild(chkBox);
-        card.appendChild(thumb);
-        card.appendChild(nameSpan);
-        card.appendChild(sel);
-        grid.appendChild(card);
+      card.appendChild(chkBox);
+      card.appendChild(thumb);
+      card.appendChild(nameSpan);
+      card.appendChild(sel);
+      return card;
+    };
+
+    if (this.sortMode === "rarity") {
+      RARITY_TIERS.forEach(tier => {
+        const itemsInTier = ITEMS.filter(it => it.rarity === tier.key);
+        if (itemsInTier.length === 0) return;
+
+        const block = document.createElement("div");
+        block.className = "inventory-category-block";
+
+        const title = document.createElement("div");
+        title.className = "inv-cat-title";
+        title.style.color = tier.color;
+        title.innerHTML = `<span>💎</span> <span>${tier.label}</span>`;
+        block.appendChild(title);
+
+        const grid = document.createElement("div");
+        grid.className = "inventory-grid";
+
+        itemsInTier.forEach(it => grid.appendChild(renderCard(it)));
+        block.appendChild(grid);
+        container.appendChild(block);
       });
+    } else {
+      CATEGORIES.forEach(cat => {
+        const itemsInCat = ITEMS.filter(it => it.role === cat.id);
+        if (itemsInCat.length === 0) return;
 
-      block.appendChild(grid);
-      container.appendChild(block);
-    });
+        const block = document.createElement("div");
+        block.className = "inventory-category-block";
+
+        const title = document.createElement("div");
+        title.className = "inv-cat-title";
+        title.style.color = "#5865f2";
+        title.innerHTML = `<span>${cat.title}</span>`;
+        block.appendChild(title);
+
+        const grid = document.createElement("div");
+        grid.className = "inventory-grid";
+
+        itemsInCat.forEach(it => grid.appendChild(renderCard(it)));
+        block.appendChild(grid);
+        container.appendChild(block);
+      });
+    }
   },
 
   updateUI() {
     StorageManager.saveInventory(this.inv);
 
     const headline = document.getElementById("invHeadline").value;
+    const bannerSubtitle = document.getElementById("invBanner").value;
     const maxChars = this.nitro ? 4000 : 2000;
-    const parts = chunkInventoryMessages(headline, "=== INVENTORY ===", "", this.inv, userColors, this.includeRoleTags, maxChars);
+    const bannerTitle = bannerSubtitle && bannerSubtitle.trim() ? bannerSubtitle.trim() : "=== INVENTORY ===";
+    const parts = chunkInventoryMessages(headline, bannerTitle, "", this.inv, userColors, this.includeRoleTags, maxChars, this.sortMode);
 
     const previewContainer = document.getElementById("invPreviewContainer");
     previewContainer.innerHTML = "";
@@ -250,11 +290,12 @@ const InventoryUI = {
     clearTimeout(this.imgTimer);
     this.imgTimer = setTimeout(async () => {
       const headline = document.getElementById("invHeadline").value;
+      const bannerSubtitle = document.getElementById("invBanner").value;
       const imgBox = document.getElementById("invImagePreviewBox");
       if (!imgBox) return;
 
       try {
-        const canvas = await CanvasManager.captureInventoryCanvas(headline, userIgn, this.inv, userColors, this.showUnowned);
+        const canvas = await CanvasManager.captureInventoryCanvas(headline, bannerSubtitle, userIgn, this.inv, userColors, this.showUnowned, this.sortMode, this.includeRoleTags);
         imgBox.innerHTML = `<img src="${canvas.toDataURL('image/png')}" alt="Inventory Image Preview" style="user-select:none; pointer-events:none; max-width:100%;">`;
       } catch {
         imgBox.innerHTML = `<div style="padding:15px; color:#ef4444;">Could not generate inventory image preview.</div>`;
@@ -264,10 +305,11 @@ const InventoryUI = {
 
   async copyImage() {
     const headline = document.getElementById("invHeadline").value;
+    const bannerSubtitle = document.getElementById("invBanner").value;
     const btn = document.getElementById("invCopyImgBtn");
 
     try {
-      const canvas = await CanvasManager.captureInventoryCanvas(headline, userIgn, this.inv, userColors, this.showUnowned);
+      const canvas = await CanvasManager.captureInventoryCanvas(headline, bannerSubtitle, userIgn, this.inv, userColors, this.showUnowned, this.sortMode, this.includeRoleTags);
       canvas.toBlob(blob => {
         if (!blob) {
           CanvasManager.downloadCanvas(canvas, `inventory_${Date.now()}.png`);
@@ -290,8 +332,9 @@ const InventoryUI = {
 
   async downloadImage() {
     const headline = document.getElementById("invHeadline").value;
+    const bannerSubtitle = document.getElementById("invBanner").value;
     try {
-      const canvas = await CanvasManager.captureInventoryCanvas(headline, userIgn, this.inv, userColors, this.showUnowned);
+      const canvas = await CanvasManager.captureInventoryCanvas(headline, bannerSubtitle, userIgn, this.inv, userColors, this.showUnowned, this.sortMode, this.includeRoleTags);
       CanvasManager.downloadCanvas(canvas, `inventory_${Date.now()}.png`);
     } catch {
       alert("Error downloading image.");

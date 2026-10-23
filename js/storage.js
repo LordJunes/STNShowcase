@@ -22,24 +22,22 @@ const StorageManager = {
   loadLoadouts() {
     try {
       const data = localStorage.getItem('td_setup_loadouts');
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((ld, i) => ({
+            banner: ld.banner || (i === 0 ? "=== MY FIRST SETUP ===" : i === 1 ? "=== MY SECOND SETUP ===" : "=== MY THIRD SETUP ==="),
+            subtitle: ld.subtitle || "",
+            slots: Array.isArray(ld.slots) ? ld.slots : this.defaultSlots()
+          }));
+        }
+      }
     } catch {}
-
-    let oldSlots = null;
-    try {
-      const oldData = localStorage.getItem('td_setup_slots');
-      if (oldData) oldSlots = JSON.parse(oldData);
-    } catch {}
-
-    const oldBanner = localStorage.getItem('td_banner_team') || "=== MY FIRST SETUP ===";
 
     const initialLoadouts = [
-      { 
-        banner: (oldBanner === "=== MY SETUP ===" || !oldBanner) ? "=== MY FIRST SETUP ===" : oldBanner, 
-        slots: oldSlots || this.defaultSlots() 
-      },
-      { banner: "=== MY SECOND SETUP ===", slots: this.defaultSlots() },
-      { banner: "=== MY THIRD SETUP ===", slots: this.defaultSlots() }
+      { banner: "=== MY FIRST SETUP ===", subtitle: "", slots: this.defaultSlots() },
+      { banner: "=== MY SECOND SETUP ===", subtitle: "", slots: this.defaultSlots() },
+      { banner: "=== MY THIRD SETUP ===", subtitle: "", slots: this.defaultSlots() }
     ];
 
     localStorage.setItem('td_setup_loadouts', JSON.stringify(initialLoadouts));
@@ -50,13 +48,25 @@ const StorageManager = {
     localStorage.setItem('td_setup_loadouts', JSON.stringify(loadouts));
   },
 
-  loadSlots() {
-    return this.loadLoadouts()[0].slots;
+  loadTextOutput() {
+    return localStorage.getItem('td_text_output_enabled') === 'true';
   },
-  saveSlots(slots) {
-    const loadouts = this.loadLoadouts();
-    loadouts[0].slots = slots;
-    this.saveLoadouts(loadouts);
+  saveTextOutput(val) {
+    localStorage.setItem('td_text_output_enabled', val ? 'true' : 'false');
+  },
+
+  loadInvSortMode() {
+    return localStorage.getItem('td_inv_sort_mode') || 'category';
+  },
+  saveInvSortMode(mode) {
+    localStorage.setItem('td_inv_sort_mode', mode);
+  },
+
+  loadCbSortMode() {
+    return localStorage.getItem('td_cb_sort_mode') || 'category';
+  },
+  saveCbSortMode(mode) {
+    localStorage.setItem('td_cb_sort_mode', mode);
   },
 
   loadVip() {
@@ -117,26 +127,41 @@ const StorageManager = {
     localStorage.setItem('td_setup_inventory', JSON.stringify(inv));
   },
 
-  loadRequirements() {
-    let req = {};
-    ITEMS.forEach(it => { req[it.name] = { owned: false, lvl: 1, max: it.max }; });
+  loadClanBattle() {
+    let cb = {
+      headline: "We need players for Clan Battle",
+      banner: "=== CLAN BATTLE REQUIREMENTS ===",
+      clanName: "",
+      playersNeeded: "1 - 2 Players",
+      units: {}
+    };
+    ITEMS.forEach(it => {
+      cb.units[it.name] = { needed: false, haveCount: 0, needCount: 1, minLvl: 1 };
+    });
     try {
-      const data = localStorage.getItem('td_setup_requirements');
+      const data = localStorage.getItem('td_clan_battle');
       if (data) {
         const parsed = JSON.parse(data);
-        Object.keys(parsed).forEach(k => {
-          if (req[k]) {
-            req[k].owned = !!parsed[k].owned;
-            req[k].lvl = Math.min(parsed[k].lvl || 1, req[k].max);
-          }
-        });
-        return req;
+        cb.headline = parsed.headline || cb.headline;
+        cb.banner = parsed.banner || cb.banner;
+        cb.clanName = parsed.clanName || "";
+        cb.playersNeeded = parsed.playersNeeded || cb.playersNeeded;
+        if (parsed.units) {
+          Object.keys(parsed.units).forEach(k => {
+            if (cb.units[k]) {
+              cb.units[k].needed = !!parsed.units[k].needed;
+              cb.units[k].haveCount = parsed.units[k].haveCount !== undefined ? Math.max(0, Math.min(10, parsed.units[k].haveCount)) : (parsed.units[k].minCount || 0);
+              cb.units[k].needCount = parsed.units[k].needCount !== undefined ? Math.max(1, Math.min(10, parsed.units[k].needCount)) : (parsed.units[k].maxCount || 1);
+              cb.units[k].minLvl = parsed.units[k].minLvl || 1;
+            }
+          });
+        }
       }
     } catch {}
-    return req;
+    return cb;
   },
-  saveRequirements(req) {
-    localStorage.setItem('td_setup_requirements', JSON.stringify(req));
+  saveClanBattle(cb) {
+    localStorage.setItem('td_clan_battle', JSON.stringify(cb));
   },
 
   loadHeadlines() {
@@ -144,24 +169,23 @@ const StorageManager = {
       team: localStorage.getItem('td_headline_team') || "Looking for a team to farm Impossible",
       banner: localStorage.getItem('td_banner_team') || "=== MY FIRST SETUP ===",
       inv: localStorage.getItem('td_headline_inv') || "Everything i have",
-      reqHeadline: localStorage.getItem('td_req_headline') || "We need one more Person for Clan fight/Clan Join Requirements",
-      reqBanner: localStorage.getItem('td_req_banner') || "Required Units to Join our Team/Clan to Farm/Join",
-      reqClan: localStorage.getItem('td_req_clan') || ""
+      invBanner: localStorage.getItem('td_banner_inv') || ""
     };
   },
-  saveHeadlines(team, inv, banner, reqHeadline, reqBanner, reqClan) {
+  saveHeadlines(team, inv, banner, invBanner) {
     if (team !== undefined) localStorage.setItem('td_headline_team', team);
     if (inv !== undefined) localStorage.setItem('td_headline_inv', inv);
     if (banner !== undefined) localStorage.setItem('td_banner_team', banner);
-    if (reqHeadline !== undefined) localStorage.setItem('td_req_headline', reqHeadline);
-    if (reqBanner !== undefined) localStorage.setItem('td_req_banner', reqBanner);
-    if (reqClan !== undefined) localStorage.setItem('td_req_clan', reqClan);
+    if (invBanner !== undefined) localStorage.setItem('td_banner_inv', invBanner);
   },
 
   exportAllData() {
     const backup = {
-      version: 4,
+      version: 5,
       timestamp: new Date().toISOString(),
+      textOutput: this.loadTextOutput(),
+      invSortMode: this.loadInvSortMode(),
+      cbSortMode: this.loadCbSortMode(),
       colors: this.loadColors(),
       loadouts: this.loadLoadouts(),
       vip: this.loadVip(),
@@ -170,7 +194,7 @@ const StorageManager = {
       includeRoleTags: this.loadIncludeRoleTags(),
       showUnownedInImage: this.loadShowUnownedInImage(),
       inventory: this.loadInventory(),
-      requirements: this.loadRequirements(),
+      clanBattle: this.loadClanBattle(),
       headlines: this.loadHeadlines()
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -185,31 +209,24 @@ const StorageManager = {
   importAllData(jsonString) {
     try {
       const data = JSON.parse(jsonString);
+      if (typeof data.textOutput === 'boolean') this.saveTextOutput(data.textOutput);
+      if (typeof data.invSortMode === 'string') this.saveInvSortMode(data.invSortMode);
+      if (typeof data.cbSortMode === 'string') this.saveCbSortMode(data.cbSortMode);
       if (data.colors) this.saveColors(data.colors);
-      if (data.loadouts) {
-        this.saveLoadouts(data.loadouts);
-      } else if (data.slots) {
-        this.saveLoadouts([
-          { banner: (data.headlines && data.headlines.banner) || "=== MY FIRST SETUP ===", slots: data.slots },
-          { banner: "=== MY SECOND SETUP ===", slots: this.defaultSlots() },
-          { banner: "=== MY THIRD SETUP ===", slots: this.defaultSlots() }
-        ]);
-      }
+      if (data.loadouts) this.saveLoadouts(data.loadouts);
       if (typeof data.vip === 'boolean') this.saveVip(data.vip);
       if (typeof data.nitro === 'boolean') this.saveNitro(data.nitro);
       if (typeof data.ign === 'string') this.saveIgn(data.ign);
       if (typeof data.includeRoleTags === 'boolean') this.saveIncludeRoleTags(data.includeRoleTags);
       if (typeof data.showUnownedInImage === 'boolean') this.saveShowUnownedInImage(data.showUnownedInImage);
       if (data.inventory) this.saveInventory(data.inventory);
-      if (data.requirements) this.saveRequirements(data.requirements);
+      if (data.clanBattle) this.saveClanBattle(data.clanBattle);
       if (data.headlines) {
         this.saveHeadlines(
           data.headlines.team,
           data.headlines.inv,
           data.headlines.banner,
-          data.headlines.reqHeadline,
-          data.headlines.reqBanner,
-          data.headlines.reqClan
+          data.headlines.invBanner
         );
       }
       return true;

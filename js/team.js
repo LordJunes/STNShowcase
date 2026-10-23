@@ -10,11 +10,13 @@ const TeamUI = {
 
     const teamHeadlineInput = document.getElementById("teamHeadline");
     const teamBannerInput = document.getElementById("teamBanner");
+    const teamSubtitleInput = document.getElementById("teamSubtitle");
     const vipToggleBtn = document.getElementById("vipToggleBtn");
 
     const headlines = StorageManager.loadHeadlines();
     teamHeadlineInput.value = headlines.team;
     teamBannerInput.value = this.loadouts[this.activeLoadoutIdx].banner || "=== MY FIRST SETUP ===";
+    teamSubtitleInput.value = this.loadouts[this.activeLoadoutIdx].subtitle || "";
 
     this.updateVipButton();
     this.initLoadoutButtons();
@@ -27,12 +29,18 @@ const TeamUI = {
     };
 
     teamHeadlineInput.oninput = () => {
-      StorageManager.saveHeadlines(teamHeadlineInput.value, undefined, undefined);
+      StorageManager.saveHeadlines(teamHeadlineInput.value, undefined, undefined, undefined);
       this.updateUI();
     };
 
     teamBannerInput.oninput = () => {
       this.loadouts[this.activeLoadoutIdx].banner = teamBannerInput.value;
+      StorageManager.saveLoadouts(this.loadouts);
+      this.updateUI();
+    };
+
+    teamSubtitleInput.oninput = () => {
+      this.loadouts[this.activeLoadoutIdx].subtitle = teamSubtitleInput.value;
       StorageManager.saveLoadouts(this.loadouts);
       this.updateUI();
     };
@@ -55,7 +63,8 @@ const TeamUI = {
         btns.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
 
-        document.getElementById("teamBanner").value = this.loadouts[this.activeLoadoutIdx].banner;
+        document.getElementById("teamBanner").value = this.loadouts[this.activeLoadoutIdx].banner || "";
+        document.getElementById("teamSubtitle").value = this.loadouts[this.activeLoadoutIdx].subtitle || "";
         this.renderSlots();
       };
     });
@@ -76,6 +85,7 @@ const TeamUI = {
     container.innerHTML = "";
     const count = this.isVip ? 5 : 4;
     const currentSlots = this.getCurrentSlots();
+    const inv = StorageManager.loadInventory();
 
     const equippedItems = [];
     for (let s = 0; s < count; s++) {
@@ -87,6 +97,14 @@ const TeamUI = {
     for (let i = 0; i < count; i++) {
       const slot = currentSlots[i] || { item: null, role: "DAMAGE", lvl: 1 };
       const currentDef = slot.item ? ITEMS.find(x => x.name === slot.item) : null;
+      const invState = currentDef ? inv[currentDef.name] : null;
+      const isOwnedInInv = invState && invState.owned;
+      const invMaxLvl = isOwnedInInv ? invState.lvl : 1;
+
+      if (slot.item && isOwnedInInv && slot.lvl > invMaxLvl) {
+        slot.lvl = invMaxLvl;
+        StorageManager.saveLoadouts(this.loadouts);
+      }
 
       const div = document.createElement("div");
       div.className = "slot-card";
@@ -111,11 +129,12 @@ const TeamUI = {
 
       const unavailable = equippedItems.filter(name => name !== slot.item);
 
-      const dropdown = createCustomDropdown(i, slot.item, unavailable, (selectedItem) => {
+      const dropdown = createCustomDropdown(i, slot.item, unavailable, inv, (selectedItem) => {
         if (selectedItem) {
+          const itemInv = inv[selectedItem.name];
           currentSlots[i].item = selectedItem.name;
           currentSlots[i].role = selectedItem.role;
-          currentSlots[i].lvl = 1;
+          currentSlots[i].lvl = itemInv ? Math.min(itemInv.lvl, selectedItem.max) : 1;
         } else {
           currentSlots[i].item = null;
           currentSlots[i].lvl = 1;
@@ -125,15 +144,34 @@ const TeamUI = {
       });
 
       const lvlSel = document.createElement("select");
-      const currentMax = currentDef ? currentDef.max : 1;
-      for (let l = 1; l <= currentMax; l++) {
+      if (currentDef && isOwnedInInv) {
+        for (let l = 1; l <= currentDef.max; l++) {
+          const opt = document.createElement("option");
+          opt.value = l;
+          if (l <= invMaxLvl) {
+            opt.textContent = `Lvl ${l} / ${currentDef.max}${l === currentDef.max ? ' (MAX)' : ''}`;
+          } else {
+            opt.textContent = `Lvl ${l} (Not reached in Inv - Max Lvl ${invMaxLvl})`;
+            opt.disabled = true;
+          }
+          if (slot.lvl === l) opt.selected = true;
+          lvlSel.appendChild(opt);
+        }
+        lvlSel.disabled = false;
+      } else if (currentDef && !isOwnedInInv) {
         const opt = document.createElement("option");
-        opt.value = l;
-        opt.textContent = `Lvl ${l} / ${currentMax}${l === currentMax ? ' (MAX)' : ''}`;
-        if (slot.lvl === l) opt.selected = true;
+        opt.value = 1;
+        opt.textContent = "Not in Inventory";
         lvlSel.appendChild(opt);
+        lvlSel.disabled = true;
+      } else {
+        const opt = document.createElement("option");
+        opt.value = 1;
+        opt.textContent = "Lvl 1";
+        lvlSel.appendChild(opt);
+        lvlSel.disabled = true;
       }
-      lvlSel.disabled = !currentDef;
+
       lvlSel.onchange = () => {
         currentSlots[i].lvl = parseInt(lvlSel.value, 10) || 1;
         StorageManager.saveLoadouts(this.loadouts);

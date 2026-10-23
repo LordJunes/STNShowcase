@@ -3,6 +3,7 @@ let userInventory = StorageManager.loadInventory();
 let userIgn = StorageManager.loadIgn();
 let isNitro = StorageManager.loadNitro();
 let includeRoleTags = StorageManager.loadIncludeRoleTags();
+let isTextOutput = StorageManager.loadTextOutput();
 
 const ignInput = document.getElementById("ignInput");
 const ignLinePreview = document.getElementById("ignLinePreview");
@@ -11,6 +12,7 @@ ignInput.value = userIgn;
 updateIgnPreview();
 updateNitroButtons();
 updateRoleTagButtons();
+updateTextOutputState();
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -21,7 +23,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
     if (btn.dataset.tab === "teamTab") TeamUI.updateUI();
     if (btn.dataset.tab === "inventoryTab") InventoryUI.updateUI();
-    if (btn.dataset.tab === "requirementsTab") RequirementsUI.updateUI();
+    if (btn.dataset.tab === "clanBattleTab") ClanBattleUI.updateUI();
   });
 });
 
@@ -37,12 +39,35 @@ function initSettings() {
       StorageManager.saveColors(userColors);
       updateSettingsLabels();
       updateIgnPreview();
+      TeamUI.renderSlots();
       TeamUI.updateUI();
+      InventoryUI.renderItems();
       InventoryUI.updateUI();
-      RequirementsUI.updateUI();
+      ClanBattleUI.render();
+      ClanBattleUI.updateUI();
     });
   });
   updateSettingsLabels();
+
+  const btnTextOutputToggle = document.getElementById("btnTextOutputToggle");
+  btnTextOutputToggle.onclick = () => {
+    isTextOutput = !isTextOutput;
+    StorageManager.saveTextOutput(isTextOutput);
+    updateTextOutputState();
+  };
+}
+
+function updateTextOutputState() {
+  const btn = document.getElementById("btnTextOutputToggle");
+  if (btn) {
+    btn.className = `status-toggle-btn ${isTextOutput ? 'active' : 'inactive'}`;
+    btn.textContent = isTextOutput ? "📝 Text Output: ON" : "📝 Text Output: OFF";
+  }
+  if (isTextOutput) {
+    document.body.classList.remove("hide-text-output");
+  } else {
+    document.body.classList.add("hide-text-output");
+  }
 }
 
 function updateSettingsLabels() {
@@ -59,7 +84,7 @@ function updateIgnPreview() {
 }
 
 function updateNitroButtons() {
-  const nitroBtns = [document.getElementById("invNitroBtn"), document.getElementById("reqNitroBtn")];
+  const nitroBtns = [document.getElementById("invNitroBtn"), document.getElementById("cbNitroBtn")];
   nitroBtns.forEach(b => {
     if (!b) return;
     b.className = `status-toggle-btn ${isNitro ? 'active' : 'inactive'}`;
@@ -73,17 +98,18 @@ function toggleNitro() {
   updateNitroButtons();
   TeamUI.updateUI();
   InventoryUI.updateUI();
-  RequirementsUI.updateUI();
+  ClanBattleUI.updateUI();
 }
 
 document.getElementById("invNitroBtn").onclick = toggleNitro;
-document.getElementById("reqNitroBtn").onclick = toggleNitro;
+document.getElementById("cbNitroBtn").onclick = toggleNitro;
 
 ignInput.addEventListener("input", () => {
   userIgn = ignInput.value;
   StorageManager.saveIgn(userIgn);
   updateIgnPreview();
   TeamUI.updateUI();
+  InventoryUI.updateUI();
 });
 
 document.getElementById("btnExportData").onclick = () => StorageManager.exportAllData();
@@ -110,9 +136,12 @@ document.getElementById("btnResetColors").onclick = () => {
   StorageManager.saveColors(userColors);
   initSettings();
   updateIgnPreview();
+  TeamUI.renderSlots();
   TeamUI.updateUI();
+  InventoryUI.renderItems();
   InventoryUI.updateUI();
-  RequirementsUI.updateUI();
+  ClanBattleUI.render();
+  ClanBattleUI.updateUI();
 };
 
 document.getElementById("btnResetAllData").onclick = () => {
@@ -126,9 +155,9 @@ function updateRoleTagButtons() {
   const buttons = [
     document.getElementById("teamRoleTagBtn"), 
     document.getElementById("invRoleTagBtnTop"), 
-    document.getElementById("invRoleTagBtnBottom"),
-    document.getElementById("reqRoleTagBtnTop"), 
-    document.getElementById("reqRoleTagBtnBottom")
+    document.getElementById("invRoleTagBtnBottom"), 
+    document.getElementById("cbRoleTagBtnTop"), 
+    document.getElementById("cbRoleTagBtnBottom")
   ];
   buttons.forEach(btn => {
     if (!btn) return;
@@ -143,20 +172,16 @@ function toggleRoleTags() {
   updateRoleTagButtons();
   TeamUI.updateUI();
   InventoryUI.updateUI();
-  RequirementsUI.updateUI();
+  ClanBattleUI.updateUI();
 }
 
 document.getElementById("teamRoleTagBtn").onclick = toggleRoleTags;
 document.getElementById("invRoleTagBtnTop").onclick = toggleRoleTags;
 document.getElementById("invRoleTagBtnBottom").onclick = toggleRoleTags;
-document.getElementById("reqRoleTagBtnTop").onclick = toggleRoleTags;
-document.getElementById("reqRoleTagBtnBottom").onclick = toggleRoleTags;
+document.getElementById("cbRoleTagBtnTop").onclick = toggleRoleTags;
+document.getElementById("cbRoleTagBtnBottom").onclick = toggleRoleTags;
 
 initSettings();
 TeamUI.init();
 InventoryUI.init();
-RequirementsUI.init();
-
-if (typeof ScannerUI !== "undefined") {
-  ScannerUI.init();
-}
+ClanBattleUI.init();
