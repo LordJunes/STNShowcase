@@ -2,7 +2,7 @@ const ClanBattleUI = {
   data: {},
   nitro: false,
   includeRoleTags: true,
-  sortMode: "category",
+  sortMode: "rarity",
   imgTimer: null,
 
   init() {

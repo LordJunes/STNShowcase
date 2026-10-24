@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Setup & Inventory Generator</title>
-  <link rel="stylesheet" href="style.css?v=2.0">
+  <link rel="stylesheet" href="style.css?v=2.1">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body class="hide-text-output">
@@ -102,8 +102,8 @@
         <div class="sort-select-wrapper">
           <label for="invSortSelect">Sort by:</label>
           <select id="invSortSelect">
-            <option value="category">⚔️ Category (Default)</option>
-            <option value="rarity">💎 Rarity (Divine → Common)</option>
+            <option value="rarity" selected>💎 Rarity (Divine → Common)</option>
+            <option value="category">⚔️ Category</option>
           </select>
         </div>
         <button id="btnInvToggleUnowned" class="status-toggle-btn inactive" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">👁️ Show Unowned: OFF</button>
@@ -170,8 +170,8 @@
         <div class="sort-select-wrapper">
           <label for="cbSortSelect">Sort by:</label>
           <select id="cbSortSelect">
-            <option value="category">⚔️ Category (Default)</option>
-            <option value="rarity">💎 Rarity (Divine → Common)</option>
+            <option value="rarity" selected>💎 Rarity (Divine → Common)</option>
+            <option value="category">⚔️ Category</option>
           </select>
         </div>
         <button id="cbRoleTagBtnTop" class="status-toggle-btn active" style="margin-left:auto; padding:8px 14px; font-size:0.95rem;">🏷️ Role Tags: ON</button>
@@ -323,15 +323,15 @@
   </main>
 </div>
 
-<script src="js/data.js?v=2.0"></script>
-<script src="js/storage.js?v=2.0"></script>
-<script src="js/ansi.js?v=2.0"></script>
-<script src="js/canvas.js?v=2.0"></script>
-<script src="js/dropdown.js?v=2.0"></script>
-<script src="js/team.js?v=2.0"></script>
-<script src="js/inventory.js?v=2.0"></script>
-<script src="js/clanbattle.js?v=2.0"></script>
-<script src="js/app.js?v=2.0"></script>
+<script src="js/data.js?v=2.1"></script>
+<script src="js/storage.js?v=2.1"></script>
+<script src="js/ansi.js?v=2.1"></script>
+<script src="js/canvas.js?v=2.1"></script>
+<script src="js/dropdown.js?v=2.1"></script>
+<script src="js/team.js?v=2.1"></script>
+<script src="js/inventory.js?v=2.1"></script>
+<script src="js/clanbattle.js?v=2.1"></script>
+<script src="js/app.js?v=2.1"></script>
 
 </body>
 </html>

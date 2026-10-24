@@ -138,7 +138,7 @@ function buildTeamMessage(headline, ign, loadouts, count, colors, isHtml = false
   return lines.join("\n");
 }
 
-function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, colors, includeRoleTag = true, maxChars = 2000, sortMode = "category") {
+function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, colors, includeRoleTag = true, maxChars = 2000, sortMode = "rarity") {
   const threshold = maxChars - 260;
   let owned = ITEMS.filter(it => invData[it.name] && invData[it.name].owned);
 
@@ -214,7 +214,7 @@ function chunkInventoryMessages(headline, bannerText, optionalSubLine, invData, 
   });
 }
 
-function chunkClanBattleMessages(headline, bannerText, clanName, playersNeeded, cbData, colors, includeRoleTag = true, maxChars = 2000, sortMode = "category") {
+function chunkClanBattleMessages(headline, bannerText, clanName, playersNeeded, cbData, colors, includeRoleTag = true, maxChars = 2000, sortMode = "rarity") {
   const threshold = maxChars - 280;
   let activeItems = ITEMS.filter(it => cbData.units[it.name] && cbData.units[it.name].needed);
 

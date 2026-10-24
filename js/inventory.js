@@ -3,7 +3,7 @@ const InventoryUI = {
   nitro: false,
   includeRoleTags: true,
   showUnowned: false,
-  sortMode: "category",
+  sortMode: "rarity",
   imgTimer: null,
 
   init() {

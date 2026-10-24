@@ -56,14 +56,24 @@ const StorageManager = {
   },
 
   loadInvSortMode() {
-    return localStorage.getItem('td_inv_sort_mode') || 'category';
+    if (!localStorage.getItem('td_sort_rarity_migrated_v2')) {
+      localStorage.setItem('td_inv_sort_mode', 'rarity');
+      localStorage.setItem('td_cb_sort_mode', 'rarity');
+      localStorage.setItem('td_sort_rarity_migrated_v2', 'true');
+    }
+    return localStorage.getItem('td_inv_sort_mode') || 'rarity';
   },
   saveInvSortMode(mode) {
     localStorage.setItem('td_inv_sort_mode', mode);
   },
 
   loadCbSortMode() {
-    return localStorage.getItem('td_cb_sort_mode') || 'category';
+    if (!localStorage.getItem('td_sort_rarity_migrated_v2')) {
+      localStorage.setItem('td_inv_sort_mode', 'rarity');
+      localStorage.setItem('td_cb_sort_mode', 'rarity');
+      localStorage.setItem('td_sort_rarity_migrated_v2', 'true');
+    }
+    return localStorage.getItem('td_cb_sort_mode') || 'rarity';
   },
   saveCbSortMode(mode) {
     localStorage.setItem('td_cb_sort_mode', mode);

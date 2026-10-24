@@ -96,7 +96,7 @@ const CanvasManager = {
     `;
   },
 
-  buildInventoryImageDom(headline, bannerSubtitle, ign, invData, colors, showUnowned, sortMode = "category", includeRoleTag = true) {
+  buildInventoryImageDom(headline, bannerSubtitle, ign, invData, colors, showUnowned, sortMode = "rarity", includeRoleTag = true) {
     let totalOwned = 0;
     let totalMaxed = 0;
     ITEMS.forEach(it => {
@@ -223,7 +223,7 @@ const CanvasManager = {
     `;
   },
 
-  buildClanBattleImageDom(cbData, colors, includeRoleTag = true, sortMode = "category") {
+  buildClanBattleImageDom(cbData, colors, includeRoleTag = true, sortMode = "rarity") {
     let activeUnits = ITEMS.filter(it => cbData.units[it.name] && cbData.units[it.name].needed);
 
     if (sortMode === "rarity") {

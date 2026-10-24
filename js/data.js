@@ -94,3 +94,10 @@ const CATEGORIES = [
   { id: "FARM",    title: "🌾 ECONOMY & FARMS",  cssClass: "cat-farm" },
   { id: "PET",     title: "🐾 PETS",             cssClass: "cat-pet" }
 ];
+
+const IMAGE_VERSION = "2.1";
+ITEMS.forEach(item => {
+  if (item.img && !item.img.includes("?")) {
+    item.img = `${item.img}?v=${IMAGE_VERSION}`;
+  }
+});

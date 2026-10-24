@@ -384,7 +384,12 @@ select { background: #0c0e15; border: 1px solid var(--border); border-radius: 6p
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-body.hide-text-output .discord-text-element {
+body.hide-text-output .discord-text-element,
+body.hide-text-output #teamCharCount,
+body.hide-text-output #invCharBadge,
+body.hide-text-output #cbCharBadge,
+body.hide-text-output #invNitroBtn,
+body.hide-text-output #cbNitroBtn {
   display: none !important;
 }
 
